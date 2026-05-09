@@ -1353,72 +1353,206 @@ function cfBuildAnalysis() {
 
   const divData = (DIVERGENCE[CF.pair] && DIVERGENCE[CF.pair][CF.dir]) ? DIVERGENCE[CF.pair][CF.dir] : [];
 
-  // Collect all ✗ items in strength order
+  // All actionable items in strength order
   const allActions = [...CF.strong, ...CF.moderate, ...CF.weak];
-  const againstItems = allActions.filter(a => {
-    const key = a.pair + '_' + a.strength;
-    return CF.itemStates[key] === 'against';
-  });
+
+  const againstItems    = allActions.filter(a => CF.itemStates[a.pair + '_' + a.strength] === 'against');
+  const confirmedItems  = allActions.filter(a => CF.itemStates[a.pair + '_' + a.strength] === 'confirmed');
+  const uncheckedItems  = allActions.filter(a => CF.itemStates[a.pair + '_' + a.strength] === 'unchecked');
 
   if (againstItems.length === 0) {
-    ar.innerHTML = '<div style="margin:0 16px 16px;padding:14px;background:var(--surface);border-radius:12px;font-size:13px;color:var(--muted);">No pairs marked as not supporting.</div>';
+    ar.innerHTML = '<div style="margin:0 16px 16px;padding:14px;background:var(--surface);border-radius:12px;font-size:13px;color:var(--muted);">No pairs marked as not supporting. Mark pairs with ✗ first.</div>';
     return;
   }
 
-  // Section header
-  ar.innerHTML = '<div style="margin:8px 16px 10px;font-size:10px;letter-spacing:3px;color:#a78bfa;font-family:Space Mono,monospace;text-transform:uppercase;">What the market is telling you</div>';
+  // ── SECTION 1: What each ✗ pair is telling you ──────────────────────
+  const secHdr = document.createElement('div');
+  secHdr.style.cssText = 'margin:8px 16px 10px;font-size:10px;letter-spacing:3px;color:#a78bfa;font-family:Space Mono,monospace;text-transform:uppercase;';
+  secHdr.textContent = 'What the market is telling you';
+  ar.appendChild(secHdr);
 
-  const tradeVotes = {};
-  const avoidSet   = [];
+  const avoidSet = [];
 
-  againstItems.forEach((item, idx) => {
-    const weight = item.strength === 'strong' ? 3 : item.strength === 'moderate' ? 2 : 1;
-    const match  = divData.find(d => d.pair === item.pair || d.pair.includes(item.pair));
-
+  againstItems.forEach(item => {
+    const match = divData.find(d => d.pair === item.pair);
     const card = document.createElement('div');
     card.style.cssText = 'margin:0 16px 10px;background:var(--surface);border:1px solid rgba(167,139,250,0.3);border-left:3px solid #a78bfa;border-radius:12px;padding:14px;';
-
     if (match) {
       card.innerHTML =
         '<div style="font-family:Space Mono,monospace;font-size:11px;color:#a78bfa;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">' +
-          item.pair + ' — ' + item.strength + ' — not cooperating</div>' +
+          item.pair + ' — ' + item.strength.toUpperCase() + ' — not cooperating</div>' +
         '<div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:5px;line-height:1.5;">' + match.ifNot + '</div>' +
         '<div style="font-size:12px;color:var(--muted);line-height:1.5;">' + match.meaning + '</div>';
-      match.betterTrades.forEach(t => { tradeVotes[t] = (tradeVotes[t] || 0) + weight; });
       if (match.avoid && !avoidSet.includes(match.avoid)) avoidSet.push(match.avoid);
     } else {
       card.innerHTML =
         '<div style="font-family:Space Mono,monospace;font-size:11px;color:#a78bfa;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">' +
-          item.pair + ' — ' + item.strength + ' — not cooperating</div>' +
-        '<div style="font-size:13px;color:var(--muted);line-height:1.5;">This pair is not supporting the trade. One of the currency legs may not be moving as assumed.</div>';
+          item.pair + ' — ' + item.strength.toUpperCase() + ' — not cooperating</div>' +
+        '<div style="font-size:13px;color:var(--muted);line-height:1.5;">This pair is moving against your thesis — one of the currency legs is not behaving as expected.</div>';
     }
     ar.appendChild(card);
   });
 
-  // Ranked better trades
-  const sorted = Object.entries(tradeVotes).sort((a,b) => b[1]-a[1]);
+  // ── SECTION 2: Full market sweep — votes from ALL pairs ──────────────
+  // Every pair that is ✗ tells us what it IS doing (its actual direction).
+  // Every pair that is ✓ tells us what it is confirming (use PAIRS data).
+  // Every unchecked pair is treated as a neutral hint from the PAIRS data.
+  // We sweep strong → moderate → weak and tally votes for alternative trades.
+
+  // Weights: ✗ strong=6, ✗ moderate=4, ✗ weak=2 (against = strong signal)
+  //          ✓ strong=3, ✓ moderate=2, ✓ weak=1  (confirmed = supporting)
+  //          unchecked strong=1, moderate=0.5, weak=0 (hints only)
+
+  const tradeVotes  = {}; // { 'Buy EURUSD': score }
+  const tradeSource = {}; // { 'Buy EURUSD': ['GBPJPY✗ strong', ...] }
+
+  function vote(trade, score, source) {
+    if (!trade) return;
+    tradeVotes[trade]  = (tradeVotes[trade]  || 0) + score;
+    tradeSource[trade] = tradeSource[trade] || [];
+    if (!tradeSource[trade].includes(source)) tradeSource[trade].push(source);
+  }
+
+  // ✗ pairs — read what the pair is ACTUALLY doing (opposite of what you wanted)
+  // and use DIVERGENCE betterTrades to cast weighted votes
+  againstItems.forEach(item => {
+    const w = item.strength === 'strong' ? 6 : item.strength === 'moderate' ? 4 : 2;
+    const match = divData.find(d => d.pair === item.pair);
+    if (match) {
+      match.betterTrades.forEach(t => vote(t, w, item.pair + ' ✗ ' + item.strength));
+    }
+    // Also look at what the ✗ pair's own PAIRS data suggests from ITS actual direction
+    // (it's moving opposite, so its action is the inverse of what we wanted)
+    const pairDataKey = item.action === 'buy' ? 'sell' : 'buy'; // actual direction
+    if (PAIRS[item.pair] && PAIRS[item.pair][pairDataKey]) {
+      PAIRS[item.pair][pairDataKey].actions.forEach(sub => {
+        if (sub.action === 'neutral' || sub.pair === CF.pair) return;
+        const dirWord = sub.action === 'buy' ? 'Buy' : 'Sell';
+        const label = dirWord + ' ' + sub.pair;
+        const subW = item.strength === 'strong' ? 3 : item.strength === 'moderate' ? 2 : 1;
+        const subScale = sub.strength === 'strong' ? subW : sub.strength === 'moderate' ? subW * 0.7 : subW * 0.4;
+        vote(label, subScale, item.pair + ' ✗ → ' + sub.pair);
+      });
+    }
+  });
+
+  // ✓ confirmed pairs — they confirm the broader theme; their PAIRS data suggests related trades
+  confirmedItems.forEach(item => {
+    const w = item.strength === 'strong' ? 3 : item.strength === 'moderate' ? 2 : 1;
+    const dirKey = item.action; // 'buy' or 'sell'
+    if (PAIRS[item.pair] && PAIRS[item.pair][dirKey]) {
+      PAIRS[item.pair][dirKey].actions.forEach(sub => {
+        if (sub.action === 'neutral' || sub.pair === CF.pair) return;
+        const dirWord = sub.action === 'buy' ? 'Buy' : 'Sell';
+        const label = dirWord + ' ' + sub.pair;
+        const subScale = sub.strength === 'strong' ? w : sub.strength === 'moderate' ? w * 0.7 : w * 0.4;
+        vote(label, subScale, item.pair + ' ✓');
+      });
+    }
+  });
+
+  // Unchecked pairs — softer signal using the expected direction from PAIRS
+  uncheckedItems.forEach(item => {
+    const w = item.strength === 'strong' ? 1 : item.strength === 'moderate' ? 0.5 : 0;
+    if (w === 0) return;
+    const dirKey = item.action;
+    if (PAIRS[item.pair] && PAIRS[item.pair][dirKey]) {
+      PAIRS[item.pair][dirKey].actions.forEach(sub => {
+        if (sub.action === 'neutral' || sub.pair === CF.pair) return;
+        const dirWord = sub.action === 'buy' ? 'Buy' : 'Sell';
+        const label = dirWord + ' ' + sub.pair;
+        const subScale = sub.strength === 'strong' ? w : sub.strength === 'moderate' ? w * 0.5 : 0;
+        vote(label, subScale, item.pair + ' ?');
+      });
+    }
+  });
+
+  // ── SECTION 3: Ranked alternative trades ────────────────────────────
+  // Dedup: if "Buy X" and "Sell X" both exist, keep only the higher-scoring one.
+  const seenSymbols = {};
+  Object.entries(tradeVotes).forEach(([trade, score]) => {
+    const symbol = trade.replace(/^Buy |^Sell /, '');
+    if (!seenSymbols[symbol] || score > seenSymbols[symbol].score) {
+      seenSymbols[symbol] = { trade, score };
+    }
+  });
+  const dedupedVotes = Object.values(seenSymbols).map(({ trade, score }) => [trade, score]);
+
+  const sorted = dedupedVotes
+    .filter(([t]) => !t.includes(CF.pair)) // exclude the pair we're already looking at
+    .sort((a, b) => b[1] - a[1]);
+
   if (sorted.length > 0) {
-    const hdr = document.createElement('div');
-    hdr.style.cssText = 'margin:16px 16px 8px;font-size:10px;letter-spacing:3px;color:var(--text);font-family:Space Mono,monospace;text-transform:uppercase;';
-    hdr.textContent = 'Better trades — ranked by confluence';
-    ar.appendChild(hdr);
+    const th = document.createElement('div');
+    th.style.cssText = 'margin:16px 16px 6px;font-size:10px;letter-spacing:3px;color:var(--text);font-family:Space Mono,monospace;text-transform:uppercase;';
+    th.textContent = 'What the market wants you to trade instead';
+    ar.appendChild(th);
+
+    const sub = document.createElement('div');
+    sub.style.cssText = 'margin:0 16px 12px;font-size:12px;color:var(--muted);line-height:1.5;';
+    sub.textContent = 'Ranked by confluence across all pairs — strong pairs carry more weight.';
+    ar.appendChild(sub);
 
     const maxV = sorted[0][1];
-    sorted.forEach(([trade, votes], i) => {
-      const pct = Math.round((votes/maxV)*100);
-      const lbl = pct >= 80 ? 'STRONG' : pct >= 50 ? 'MODERATE' : 'WEAK';
-      const col = pct >= 80 ? 'var(--strong)' : pct >= 50 ? 'var(--moderate)' : 'var(--weak)';
-      const c = document.createElement('div');
-      c.style.cssText = 'margin:0 16px 8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;';
-      c.innerHTML =
-        '<div style="font-family:Space Mono,monospace;font-size:16px;color:'+col+';min-width:20px;">'+(i+1)+'</div>' +
-        '<div style="flex:1;"><div style="font-size:13px;color:var(--text);line-height:1.5;margin-bottom:4px;">'+trade+'</div>' +
-        '<div style="font-size:10px;font-family:Space Mono,monospace;color:'+col+';letter-spacing:1px;">'+lbl+' CONFLUENCE</div></div>';
-      ar.appendChild(c);
+
+    // Group into tiers
+    const tiers = [
+      { label: '🔴 STRONG CONFLUENCE', min: 75, col: 'var(--strong)', border: 'rgba(0,212,170,0.3)', bg: 'rgba(0,212,170,0.04)' },
+      { label: '🟡 MODERATE CONFLUENCE', min: 45, col: 'var(--moderate)', border: 'rgba(245,158,11,0.3)', bg: 'rgba(245,158,11,0.04)' },
+      { label: '⚪ WEAK CONFLUENCE', min: 0, col: 'var(--weak)', border: 'var(--border)', bg: 'transparent' },
+    ];
+
+    let rank = 1;
+    tiers.forEach(tier => {
+      const tierItems = sorted.filter(([, v]) => {
+        const pct = Math.round((v / maxV) * 100);
+        return pct >= tier.min && (tier.min === 0 || pct < (tier.min === 45 ? 75 : 200));
+      });
+      // For the last tier (min=0) include everything below 45
+      const tierItemsFiltered = tier.min === 0
+        ? sorted.filter(([, v]) => Math.round((v / maxV) * 100) < 45)
+        : tierItems;
+
+      if (tierItemsFiltered.length === 0) return;
+
+      const tHdr = document.createElement('div');
+      tHdr.style.cssText = 'margin:10px 16px 6px;font-size:10px;letter-spacing:2px;color:' + tier.col + ';font-family:Space Mono,monospace;text-transform:uppercase;';
+      tHdr.textContent = tier.label;
+      ar.appendChild(tHdr);
+
+      tierItemsFiltered.forEach(([trade, votes]) => {
+        const pct = Math.round((votes / maxV) * 100);
+        const sources = (tradeSource[trade] || []).slice(0, 3); // max 3 source labels
+        const c = document.createElement('div');
+        c.style.cssText = 'margin:0 16px 8px;background:var(--surface);border:1px solid ' + tier.border + ';border-left:3px solid ' + tier.col + ';border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;';
+
+        // Parse direction and pair name for colour coding
+        const isBuy = trade.startsWith('Buy ');
+        const dirCol = isBuy ? 'var(--buy)' : 'var(--sell)';
+        const dirArrow = isBuy ? '▲' : '▼';
+        const pairLabel = trade.replace(/^Buy |^Sell /, '');
+
+        c.innerHTML =
+          '<div style="font-family:Space Mono,monospace;font-size:15px;color:' + tier.col + ';min-width:22px;font-weight:700;">' + rank + '</div>' +
+          '<div style="flex:1;">' +
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+              '<span style="font-family:Space Mono,monospace;font-size:13px;font-weight:700;color:' + dirCol + ';">' + dirArrow + ' ' + trade + '</span>' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">' +
+              '<div style="flex:1;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;">' +
+                '<div style="width:' + pct + '%;height:100%;background:' + tier.col + ';border-radius:2px;"></div>' +
+              '</div>' +
+              '<span style="font-family:Space Mono,monospace;font-size:10px;color:' + tier.col + ';min-width:32px;text-align:right;">' + pct + '%</span>' +
+            '</div>' +
+            '<div style="font-size:11px;color:var(--muted);font-family:Space Mono,monospace;">Signalled by: ' + sources.join(' · ') + '</div>' +
+          '</div>';
+        ar.appendChild(c);
+        rank++;
+      });
     });
   }
 
-  // Avoid
+  // ── SECTION 4: What to avoid ─────────────────────────────────────────
   if (avoidSet.length > 0) {
     const ah = document.createElement('div');
     ah.style.cssText = 'margin:16px 16px 8px;font-size:10px;letter-spacing:3px;color:var(--sell);font-family:Space Mono,monospace;text-transform:uppercase;';
@@ -1433,7 +1567,7 @@ function cfBuildAnalysis() {
   }
 
   const pad = document.createElement('div');
-  pad.style.height = '24px';
+  pad.style.height = '32px';
   ar.appendChild(pad);
 
   setTimeout(() => ar.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
