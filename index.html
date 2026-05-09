@@ -908,37 +908,48 @@ function runConfirmation() {
   resultsEl.style.display = 'flex';
   resultsEl.style.flexDirection = 'column';
 
-  // Header
-  resultsEl.innerHTML += `
-    <div class="result-header ${isLong ? 'long-header' : 'short-header'}">
-      <div class="trade-label">${pair} ${isLong ? 'LONG ▲' : 'SHORT ▼'}</div>
-      <div class="trade-subtext">${pairData.context}</div>
-    </div>
-    <div class="score-section">
-      <div class="score-title">Confirmation Score</div>
-      <div class="score-bar-wrap"><div class="score-bar-fill" id="score-bar" style="width:0%;background:${CF.barColor};"></div></div>
-      <div class="score-numbers"><span id="score-text">Tap each pair — ✓ confirms, ✗ doesn't support</span><span id="score-frac">0/${CF.total}</span></div>
-      <div class="score-verdict" id="score-verdict" style="display:none;"></div>
-    </div>
-    <div class="tap-hint">↓ TAP ONCE = CONFIRMED ✓ &nbsp; TAP TWICE = NOT SUPPORTING ✗ ↓</div>`;
+  // --- Trade header (pure DOM, no innerHTML after this point) ---
+  const hdr = document.createElement('div');
+  hdr.className = 'result-header ' + (isLong ? 'long-header' : 'short-header');
+  hdr.innerHTML = '<div class="trade-label">' + pair + ' ' + (isLong ? 'LONG ▲' : 'SHORT ▼') + '</div>' +
+    '<div class="trade-subtext">' + pairData.context + '</div>';
+  resultsEl.appendChild(hdr);
 
-  // Build all checklist groups
+  // --- Score bar ---
+  const scoreEl = document.createElement('div');
+  scoreEl.className = 'score-section';
+  scoreEl.innerHTML =
+    '<div class="score-title">Confirmation Score</div>' +
+    '<div class="score-bar-wrap"><div class="score-bar-fill" id="score-bar" style="width:0%;background:' + CF.barColor + ';"></div></div>' +
+    '<div class="score-numbers"><span id="score-text">Tap each pair below to check it off</span><span id="score-frac">0/' + CF.total + '</span></div>' +
+    '<div class="score-verdict" id="score-verdict" style="display:none;"></div>';
+  resultsEl.appendChild(scoreEl);
+
+  // --- Hint ---
+  const hint = document.createElement('div');
+  hint.className = 'tap-hint';
+  hint.textContent = 'TAP ONCE = CONFIRMED ✓   TAP TWICE = NOT SUPPORTING ✗';
+  resultsEl.appendChild(hint);
+
+  // --- Checklist groups ---
   cfBuildGroup(CF.strong,   'strong',   '🔴 Must confirm — non-negotiable');
   cfBuildGroup(CF.moderate, 'moderate', '🟡 Should confirm — important');
   cfBuildGroup(CF.weak,     'weak',     '⚪ Nice to have — bonus confluence');
 
-  // Analyse button and results div — static HTML, always present
-  resultsEl.innerHTML += `
-    <button id="analyse-btn" onclick="cfBuildAnalysis()"
-      style="display:none;width:calc(100% - 32px);margin:8px 16px 12px;padding:13px;border-radius:12px;border:none;background:#a78bfa;color:#000;font-family:'Space Mono',monospace;font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;">
-      WHAT IS THE MARKET SAYING? →
-    </button>
-    <div id="analysis-results"></div>`;
+  // --- Analyse button (DOM element, not innerHTML) ---
+  const analyseBtn = document.createElement('button');
+  analyseBtn.id = 'analyse-btn';
+  analyseBtn.textContent = 'WHAT IS THE MARKET SAYING? →';
+  analyseBtn.style.cssText = 'display:none;width:calc(100% - 32px);margin:8px 16px 12px;padding:13px;border-radius:12px;border:none;background:#a78bfa;color:#000;font-family:Space Mono,monospace;font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;';
+  analyseBtn.onclick = cfBuildAnalysis;
+  resultsEl.appendChild(analyseBtn);
 
-  setTimeout(() => {
-    const sb = document.getElementById('score-bar');
-    if (sb) sb.closest('.score-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 150);
+  // --- Analysis container ---
+  const analysisDiv = document.createElement('div');
+  analysisDiv.id = 'analysis-results';
+  resultsEl.appendChild(analysisDiv);
+
+  setTimeout(() => scoreEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
 }
 
 function cfBuildGroup(items, strengthKey, groupLabel) {
@@ -1173,4 +1184,3 @@ if ('serviceWorker' in navigator) { window.addEventListener('load', () => naviga
 </script>
 </body>
 </html>
-
