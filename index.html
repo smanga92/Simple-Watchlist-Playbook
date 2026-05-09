@@ -926,13 +926,10 @@ function runConfirmation() {
   analyseBtn.id = 'analyse-btn';
   analyseBtn.textContent = 'WHAT IS THE MARKET SAYING? →';
   analyseBtn.style.cssText = 'display:none; width:calc(100% - 32px); margin:4px 16px 12px; padding:13px; border-radius:12px; border:none; background:#a78bfa; color:#000; font-family:"Space Mono",monospace; font-size:12px; font-weight:700; letter-spacing:1px; cursor:pointer;';
-  resultsEl.appendChild(analyseBtn);
-
   // Analysis results container — shown after button tap
   const analysisEl = document.createElement('div');
   analysisEl.id = 'analysis-results';
   analysisEl.style.cssText = 'display:none;';
-  resultsEl.appendChild(analysisEl);
 
   let confirmedCount = 0;
   const itemStates = {};
@@ -977,10 +974,7 @@ function runConfirmation() {
     analysisEl.innerHTML = '';
   }
 
-  analyseBtn.addEventListener('click', () => {
-    buildAnalysis();
-    setTimeout(() => analysisEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-  });
+  // click wired after DOM append below
 
   function buildAnalysis() {
     analysisEl.innerHTML = '';
@@ -1176,9 +1170,15 @@ function runConfirmation() {
   buildGroup(moderate, 'moderate', 'Should confirm — important but not all needed', '🟡');
   buildGroup(weak,     'weak',     'Nice to have — bonus confluence', '⚪');
 
-  // Insert analyse button and analysis AFTER all groups
+  // Append button and analysis container AFTER all checklist cards
   resultsEl.appendChild(analyseBtn);
   resultsEl.appendChild(analysisEl);
+
+  // Wire the click AFTER both are in the DOM
+  analyseBtn.onclick = function() {
+    buildAnalysis();
+    setTimeout(() => analysisEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  };
 
   setTimeout(() => scoreEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
 }
