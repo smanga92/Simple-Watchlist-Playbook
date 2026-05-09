@@ -869,6 +869,7 @@ function goHome() {
 // CONFIRMATION
 // ═══════════════════════════════════
 let confirmDir = 'long';
+let CF = {}; // global confirm state
 
 function setConfirmDir(dir) {
   confirmDir = dir;
@@ -878,311 +879,283 @@ function setConfirmDir(dir) {
   const r = document.getElementById('confirm-results');
   r.style.display = 'none';
   r.innerHTML = '';
+  CF = {};
 }
 
 function runConfirmation() {
   const pair = document.getElementById('confirm-pair').value;
   const dirKey = confirmDir === 'long' ? 'buy' : 'sell';
   const pairData = PAIRS[pair][dirKey];
+  const isLong = confirmDir === 'long';
+
+  // Reset global state
+  CF = {
+    pair: pair,
+    dir: confirmDir,
+    itemStates: {},
+    confirmedCount: 0,
+    againstPairs: [],
+    actionable: pairData.actions.filter(a => a.action !== 'neutral')
+  };
+  CF.strong   = CF.actionable.filter(a => a.strength === 'strong');
+  CF.moderate = CF.actionable.filter(a => a.strength === 'moderate');
+  CF.weak     = CF.actionable.filter(a => a.strength === 'weak');
+  CF.total    = CF.actionable.length;
+  CF.barColor = isLong ? 'var(--buy)' : 'var(--sell)';
+
   const resultsEl = document.getElementById('confirm-results');
   resultsEl.innerHTML = '';
   resultsEl.style.display = 'flex';
   resultsEl.style.flexDirection = 'column';
 
-  const isLong = confirmDir === 'long';
-  const divDir = confirmDir === 'long' ? 'long' : 'short';
+  // Header
+  resultsEl.innerHTML += `
+    <div class="result-header ${isLong ? 'long-header' : 'short-header'}">
+      <div class="trade-label">${pair} ${isLong ? 'LONG ▲' : 'SHORT ▼'}</div>
+      <div class="trade-subtext">${pairData.context}</div>
+    </div>
+    <div class="score-section">
+      <div class="score-title">Confirmation Score</div>
+      <div class="score-bar-wrap"><div class="score-bar-fill" id="score-bar" style="width:0%;background:${CF.barColor};"></div></div>
+      <div class="score-numbers"><span id="score-text">Tap each pair — ✓ confirms, ✗ doesn't support</span><span id="score-frac">0/${CF.total}</span></div>
+      <div class="score-verdict" id="score-verdict" style="display:none;"></div>
+    </div>
+    <div class="tap-hint">↓ TAP ONCE = CONFIRMED ✓ &nbsp; TAP TWICE = NOT SUPPORTING ✗ ↓</div>`;
 
-  // Trade header
-  const hdr = document.createElement('div');
-  hdr.className = 'result-header ' + (isLong ? 'long-header' : 'short-header');
-  hdr.innerHTML = `<div class="trade-label">${pair} ${isLong ? 'LONG ▲' : 'SHORT ▼'}</div><div class="trade-subtext">${pairData.context}</div>`;
-  resultsEl.appendChild(hdr);
+  // Build all checklist groups
+  cfBuildGroup(CF.strong,   'strong',   '🔴 Must confirm — non-negotiable');
+  cfBuildGroup(CF.moderate, 'moderate', '🟡 Should confirm — important');
+  cfBuildGroup(CF.weak,     'weak',     '⚪ Nice to have — bonus confluence');
 
-  // Filter only actionable (non-neutral)
-  const actionable = pairData.actions.filter(a => a.action !== 'neutral');
-  const strong   = actionable.filter(a => a.strength === 'strong');
-  const moderate = actionable.filter(a => a.strength === 'moderate');
-  const weak     = actionable.filter(a => a.strength === 'weak');
-  const total = actionable.length;
+  // Analyse button and results div — static HTML, always present
+  resultsEl.innerHTML += `
+    <button id="analyse-btn" onclick="cfBuildAnalysis()"
+      style="display:none;width:calc(100% - 32px);margin:8px 16px 12px;padding:13px;border-radius:12px;border:none;background:#a78bfa;color:#000;font-family:'Space Mono',monospace;font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;">
+      WHAT IS THE MARKET SAYING? →
+    </button>
+    <div id="analysis-results"></div>`;
 
-  // Score section
-  const scoreEl = document.createElement('div');
-  scoreEl.className = 'score-section';
-  const barColor = isLong ? 'var(--buy)' : 'var(--sell)';
-  scoreEl.innerHTML = `
-    <div class="score-title">Confirmation Score</div>
-    <div class="score-bar-wrap"><div class="score-bar-fill" id="score-bar" style="width:0%;background:${barColor};"></div></div>
-    <div class="score-numbers"><span id="score-text">Tap pairs below to mark confirmed ✓ or not ✗</span><span id="score-frac">0/${total}</span></div>
-    <div class="score-verdict" id="score-verdict" style="display:none;"></div>`;
-  resultsEl.appendChild(scoreEl);
-
-  const tapHint = document.createElement('div');
-  tapHint.className = 'tap-hint';
-  tapHint.textContent = '↓ TAP EACH PAIR — ONCE = CONFIRMED ✓, TWICE = NOT SUPPORTING ✗ ↓';
-  resultsEl.appendChild(tapHint);
-
-  // "See what the market is saying" button — hidden until at least one ✗
-  const analyseBtn = document.createElement('button');
-  analyseBtn.id = 'analyse-btn';
-  analyseBtn.textContent = 'WHAT IS THE MARKET SAYING? →';
-  analyseBtn.style.cssText = 'display:none; width:calc(100% - 32px); margin:4px 16px 12px; padding:13px; border-radius:12px; border:none; background:#a78bfa; color:#000; font-family:"Space Mono",monospace; font-size:12px; font-weight:700; letter-spacing:1px; cursor:pointer;';
-  // Analysis results container — shown after button tap
-  const analysisEl = document.createElement('div');
-  analysisEl.id = 'analysis-results';
-  analysisEl.style.cssText = 'display:none;';
-
-  let confirmedCount = 0;
-  const itemStates = {};
-  const againstPairs = new Set(); // track which pairs are marked ✗
-
-  function updateScore() {
-    const pct = total > 0 ? Math.round((confirmedCount / total) * 100) : 0;
-    document.getElementById('score-bar').style.width = pct + '%';
-    document.getElementById('score-frac').textContent = confirmedCount + '/' + total;
-    const verdictEl = document.getElementById('score-verdict');
-    const textEl = document.getElementById('score-text');
-    const allChecked = Object.values(itemStates).every(s => s !== 'unchecked');
-
-    if (Object.values(itemStates).every(s => s === 'unchecked')) {
-      textEl.textContent = 'Tap pairs below to mark confirmed ✓ or not ✗';
-      verdictEl.style.display = 'none';
-      analyseBtn.style.display = 'none';
-      return;
-    }
-
-    textEl.textContent = 'Pairs confirmed';
-    verdictEl.style.display = 'block';
-
-    const strongKeys = strong.map(a => a.pair + '_strong');
-    const allStrongConfirmed = strongKeys.every(k => itemStates[k] === 'confirmed');
-
-    if (pct >= 75 && allStrongConfirmed) {
-      verdictEl.className = 'score-verdict verdict-strong';
-      verdictEl.innerHTML = '✅ <strong>Strong confirmation.</strong> All key signals align. The market agrees — look for your entry.';
-    } else if (pct >= 45) {
-      verdictEl.className = 'score-verdict verdict-moderate';
-      verdictEl.innerHTML = '⚠️ <strong>Partial confirmation.</strong> Some pairs agree, some don\'t. See what the market is really saying below.';
-    } else {
-      verdictEl.className = 'score-verdict verdict-weak';
-      verdictEl.innerHTML = '❌ <strong>Weak confirmation.</strong> The market is not supporting this trade. See what it\'s telling you instead.';
-    }
-
-    // Show analyse button if any ✗ marked
-    analyseBtn.style.display = againstPairs.size > 0 ? 'block' : 'none';
-    // Reset analysis if user keeps changing
-    analysisEl.style.display = 'none';
-    analysisEl.innerHTML = '';
-  }
-
-  // click wired after DOM append below
-
-  function buildAnalysis() {
-    analysisEl.innerHTML = '';
-    analysisEl.style.display = 'block';
-
-    const divData = DIVERGENCE[pair] ? DIVERGENCE[pair][divDir] : [];
-
-    // Section header
-    const secHdr = document.createElement('div');
-    secHdr.style.cssText = 'margin:8px 16px 10px; font-size:10px; letter-spacing:3px; color:#a78bfa; font-family:"Space Mono",monospace; text-transform:uppercase;';
-    secHdr.textContent = 'What the market is telling you';
-    analysisEl.appendChild(secHdr);
-
-    // Collect all divergence insights for ✗ pairs, ranked strong→moderate→weak
-    const allActions = [...strong, ...moderate, ...weak];
-    const againstItems = allActions.filter(a => {
-      const stateKey = a.pair + '_' + a.strength;
-      return itemStates[stateKey] === 'against';
-    });
-
-    // Find divergence data for each ✗ pair
-    const insights = [];
-    againstItems.forEach(item => {
-      if (!divData) return;
-      const match = divData.find(d => {
-        const divPairName = d.pair.split('/')[0].trim();
-        return item.pair === divPairName || d.pair.includes(item.pair);
-      });
-      if (match) {
-        insights.push({ strength: item.strength, actionItem: item, divItem: match });
-      } else {
-        // Generic insight when no specific divergence data
-        insights.push({ strength: item.strength, actionItem: item, divItem: null });
-      }
-    });
-
-    if (insights.length === 0) {
-      analysisEl.innerHTML += '<div style="margin:0 16px; padding:14px; background:var(--surface); border-radius:12px; font-size:13px; color:var(--muted);">No specific divergence insight for these pairs yet.</div>';
-      return;
-    }
-
-    // Group better trades by collecting all of them across all ✗ pairs
-    // Then deduplicate and rank by how many ✗ pairs suggest it
-    const tradeVotes = {};
-    const avoidSet = new Set();
-
-    insights.forEach(({ strength, actionItem, divItem }) => {
-      const weight = strength === 'strong' ? 3 : strength === 'moderate' ? 2 : 1;
-
-      // Show individual insight card
-      const card = document.createElement('div');
-      card.style.cssText = 'margin:0 16px 10px; background:var(--surface); border:1px solid rgba(167,139,250,0.25); border-left:3px solid #a78bfa; border-radius:12px; padding:14px; animation:slideUp 0.3s ease both;';
-
-      if (divItem) {
-        card.innerHTML = `
-          <div style="font-family:'Space Mono',monospace; font-size:11px; color:#a78bfa; margin-bottom:5px; text-transform:uppercase; letter-spacing:1px;">${actionItem.pair} — ${strength} signal — not cooperating</div>
-          <div style="font-size:14px; font-weight:500; color:var(--text); margin-bottom:5px; line-height:1.5;">${divItem.ifNot}</div>
-          <div style="font-size:12px; color:var(--muted); line-height:1.5;">${divItem.meaning}</div>`;
-
-        divItem.betterTrades.forEach(t => {
-          tradeVotes[t] = (tradeVotes[t] || 0) + weight;
-        });
-        if (divItem.avoid) avoidSet.add(divItem.avoid);
-      } else {
-        card.innerHTML = `
-          <div style="font-family:'Space Mono',monospace; font-size:11px; color:#a78bfa; margin-bottom:5px; text-transform:uppercase; letter-spacing:1px;">${actionItem.pair} — ${strength} signal — not cooperating</div>
-          <div style="font-size:13px; color:var(--muted); line-height:1.5;">This pair is not supporting the trade. The ${actionItem.action === 'buy' ? 'expected rise' : 'expected fall'} is absent — one of the currency legs may not be moving as assumed.</div>`;
-      }
-
-      analysisEl.appendChild(card);
-    });
-
-    // Build ranked better trades list
-    const sortedTrades = Object.entries(tradeVotes).sort((a, b) => b[1] - a[1]);
-
-    if (sortedTrades.length > 0) {
-      const tradeHdr = document.createElement('div');
-      tradeHdr.style.cssText = 'margin:16px 16px 8px; font-size:10px; letter-spacing:3px; color:var(--text); font-family:"Space Mono",monospace; text-transform:uppercase;';
-      tradeHdr.textContent = 'Better trades — ranked by confluence';
-      analysisEl.appendChild(tradeHdr);
-
-      const maxVotes = sortedTrades[0][1];
-      sortedTrades.forEach(([trade, votes], i) => {
-        const pct = Math.round((votes / maxVotes) * 100);
-        const strengthLabel = pct >= 80 ? 'STRONG' : pct >= 50 ? 'MODERATE' : 'WEAK';
-        const strengthColor = pct >= 80 ? 'var(--strong)' : pct >= 50 ? 'var(--moderate)' : 'var(--weak)';
-        const card = document.createElement('div');
-        card.style.cssText = 'margin:0 16px 8px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 14px; display:flex; align-items:flex-start; gap:10px; animation:slideUp 0.3s ease both;';
-        card.style.animationDelay = (i * 0.06) + 's';
-        card.innerHTML = `
-          <div style="font-family:'Space Mono',monospace; font-size:16px; color:${strengthColor}; min-width:20px;">${i+1}</div>
-          <div style="flex:1;">
-            <div style="font-size:13px; color:var(--text); line-height:1.5; margin-bottom:4px;">${trade}</div>
-            <div style="font-size:10px; font-family:'Space Mono',monospace; color:${strengthColor}; letter-spacing:1px;">${strengthLabel} CONFLUENCE</div>
-          </div>`;
-        analysisEl.appendChild(card);
-      });
-    }
-
-    // Avoid section
-    if (avoidSet.size > 0) {
-      const avoidHdr = document.createElement('div');
-      avoidHdr.style.cssText = 'margin:16px 16px 8px; font-size:10px; letter-spacing:3px; color:var(--sell); font-family:"Space Mono",monospace; text-transform:uppercase;';
-      avoidHdr.textContent = 'What to avoid';
-      analysisEl.appendChild(avoidHdr);
-
-      avoidSet.forEach(avoid => {
-        const a = document.createElement('div');
-        a.style.cssText = 'margin:0 16px 8px; padding:10px 14px; background:rgba(255,77,109,0.06); border:1px solid rgba(255,77,109,0.2); border-radius:10px; font-size:13px; color:var(--muted); line-height:1.5;';
-        a.innerHTML = '✗ ' + avoid;
-        analysisEl.appendChild(a);
-      });
-    }
-
-    // Bottom padding
-    const pad = document.createElement('div');
-    pad.style.height = '24px';
-    analysisEl.appendChild(pad);
-  }
-
-  function buildGroup(items, strengthKey, groupLabel, emoji) {
-    if (items.length === 0) return;
-    const gt = document.createElement('div');
-    gt.className = 'check-group-title';
-    gt.textContent = emoji + ' ' + groupLabel;
-    resultsEl.appendChild(gt);
-
-    items.forEach((item, i) => {
-      const stateKey = item.pair + '_' + strengthKey;
-      itemStates[stateKey] = 'unchecked';
-
-      const dirLabel = item.action === 'buy' ? '▲ Must be RISING' : '▼ Must be FALLING';
-      const dirClass = item.action === 'buy' ? 'dir-up' : 'dir-down';
-
-      const card = document.createElement('div');
-      card.className = 'check-item';
-      card.style.animationDelay = (i * 0.05) + 's';
-
-      card.innerHTML = `
-        <div class="check-icon" id="icon-${stateKey}">○</div>
-        <div class="check-content">
-          <div class="check-pair-row">
-            <span class="check-pair-name">${item.pair}</span>
-            <span class="check-need need-${strengthKey}">${strengthKey.toUpperCase()}</span>
-          </div>
-          <div class="check-direction ${dirClass}">${dirLabel}</div>
-          <div class="check-desc">${item.reason}</div>
-          <div class="check-status" id="status-${stateKey}">Tap to confirm ↑</div>
-        </div>`;
-
-      card.addEventListener('click', () => {
-        const icon = document.getElementById('icon-' + stateKey);
-        const status = document.getElementById('status-' + stateKey);
-        const prev = itemStates[stateKey];
-
-        if (prev === 'unchecked') {
-          itemStates[stateKey] = 'confirmed';
-          card.classList.add('state-confirmed');
-          card.classList.remove('state-against');
-          icon.className = 'check-icon icon-yes';
-          icon.textContent = '✓';
-          status.className = 'check-status confirmed';
-          status.textContent = '✓ Confirmed — supporting the trade';
-          confirmedCount++;
-          againstPairs.delete(item.pair);
-        } else if (prev === 'confirmed') {
-          itemStates[stateKey] = 'against';
-          card.classList.add('state-against');
-          card.classList.remove('state-confirmed');
-          icon.className = 'check-icon icon-no';
-          icon.textContent = '✗';
-          status.className = 'check-status against';
-          status.textContent = '✗ Not supporting — market disagrees';
-          confirmedCount--;
-          againstPairs.add(item.pair);
-        } else {
-          itemStates[stateKey] = 'unchecked';
-          card.classList.remove('state-confirmed', 'state-against');
-          icon.className = 'check-icon';
-          icon.textContent = '○';
-          status.className = 'check-status';
-          status.textContent = 'Tap to confirm ↑';
-          againstPairs.delete(item.pair);
-        }
-        updateScore();
-      });
-
-      resultsEl.appendChild(card);
-    });
-  }
-
-  buildGroup(strong,   'strong',   'Must confirm — these are non-negotiable', '🔴');
-  buildGroup(moderate, 'moderate', 'Should confirm — important but not all needed', '🟡');
-  buildGroup(weak,     'weak',     'Nice to have — bonus confluence', '⚪');
-
-  // Append button and analysis container AFTER all checklist cards
-  resultsEl.appendChild(analyseBtn);
-  resultsEl.appendChild(analysisEl);
-
-  // Wire the click AFTER both are in the DOM
-  analyseBtn.onclick = function() {
-    buildAnalysis();
-    setTimeout(() => analysisEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-  };
-
-  setTimeout(() => scoreEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+  setTimeout(() => {
+    const sb = document.getElementById('score-bar');
+    if (sb) sb.closest('.score-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 150);
 }
 
+function cfBuildGroup(items, strengthKey, groupLabel) {
+  if (items.length === 0) return;
+  const resultsEl = document.getElementById('confirm-results');
+
+  const gt = document.createElement('div');
+  gt.className = 'check-group-title';
+  gt.textContent = groupLabel;
+  resultsEl.appendChild(gt);
+
+  items.forEach((item, i) => {
+    const stateKey = item.pair + '_' + strengthKey;
+    CF.itemStates[stateKey] = 'unchecked';
+
+    const dirLabel = item.action === 'buy' ? '▲ Must be RISING' : '▼ Must be FALLING';
+    const dirClass = item.action === 'buy' ? 'dir-up' : 'dir-down';
+
+    const card = document.createElement('div');
+    card.className = 'check-item';
+    card.id = 'card-' + stateKey;
+    card.style.animationDelay = (i * 0.04) + 's';
+    card.setAttribute('data-key', stateKey);
+    card.setAttribute('data-pair', item.pair);
+    card.innerHTML = `
+      <div class="check-icon" id="icon-${stateKey}">○</div>
+      <div class="check-content">
+        <div class="check-pair-row">
+          <span class="check-pair-name">${item.pair}</span>
+          <span class="check-need need-${strengthKey}">${strengthKey.toUpperCase()}</span>
+        </div>
+        <div class="check-direction ${dirClass}">${dirLabel}</div>
+        <div class="check-desc">${item.reason}</div>
+        <div class="check-status" id="status-${stateKey}">Tap to mark ↑</div>
+      </div>`;
+
+    card.addEventListener('click', function() { cfToggleItem(stateKey, item.pair); });
+    resultsEl.appendChild(card);
+  });
+}
+
+function cfToggleItem(stateKey, pairName) {
+  const card   = document.getElementById('card-' + stateKey);
+  const icon   = document.getElementById('icon-' + stateKey);
+  const status = document.getElementById('status-' + stateKey);
+  const prev   = CF.itemStates[stateKey];
+
+  if (prev === 'unchecked') {
+    CF.itemStates[stateKey] = 'confirmed';
+    card.classList.add('state-confirmed');
+    card.classList.remove('state-against');
+    icon.className = 'check-icon icon-yes';
+    icon.textContent = '✓';
+    status.className = 'check-status confirmed';
+    status.textContent = '✓ Confirmed — supporting the trade';
+    CF.confirmedCount++;
+    CF.againstPairs = CF.againstPairs.filter(p => p !== pairName);
+
+  } else if (prev === 'confirmed') {
+    CF.itemStates[stateKey] = 'against';
+    card.classList.add('state-against');
+    card.classList.remove('state-confirmed');
+    icon.className = 'check-icon icon-no';
+    icon.textContent = '✗';
+    status.className = 'check-status against';
+    status.textContent = '✗ Not supporting — market disagrees';
+    CF.confirmedCount--;
+    if (!CF.againstPairs.includes(pairName)) CF.againstPairs.push(pairName);
+
+  } else {
+    CF.itemStates[stateKey] = 'unchecked';
+    card.classList.remove('state-confirmed', 'state-against');
+    icon.className = 'check-icon';
+    icon.textContent = '○';
+    status.className = 'check-status';
+    status.textContent = 'Tap to mark ↑';
+    CF.againstPairs = CF.againstPairs.filter(p => p !== pairName);
+  }
+
+  cfUpdateScore();
+}
+
+function cfUpdateScore() {
+  const pct = CF.total > 0 ? Math.round((CF.confirmedCount / CF.total) * 100) : 0;
+  const bar = document.getElementById('score-bar');
+  const frac = document.getElementById('score-frac');
+  const verdict = document.getElementById('score-verdict');
+  const scoreText = document.getElementById('score-text');
+  const analyseBtn = document.getElementById('analyse-btn');
+
+  if (bar) bar.style.width = pct + '%';
+  if (frac) frac.textContent = CF.confirmedCount + '/' + CF.total;
+
+  const allUnchecked = Object.values(CF.itemStates).every(s => s === 'unchecked');
+  if (allUnchecked) {
+    if (verdict) verdict.style.display = 'none';
+    if (analyseBtn) analyseBtn.style.display = 'none';
+    if (scoreText) scoreText.textContent = 'Tap each pair — ✓ confirms, ✗ doesn\'t support';
+    return;
+  }
+
+  if (scoreText) scoreText.textContent = 'Pairs confirmed';
+  if (verdict) verdict.style.display = 'block';
+
+  const strongKeys = CF.strong.map(a => a.pair + '_strong');
+  const allStrongOk = strongKeys.every(k => CF.itemStates[k] === 'confirmed');
+
+  if (pct >= 75 && allStrongOk) {
+    verdict.className = 'score-verdict verdict-strong';
+    verdict.innerHTML = '✅ <strong>Strong confirmation.</strong> All key signals align. Look for your entry.';
+  } else if (pct >= 45) {
+    verdict.className = 'score-verdict verdict-moderate';
+    verdict.innerHTML = '⚠️ <strong>Partial confirmation.</strong> Some pairs agree, some don\'t. See what the market is saying below.';
+  } else {
+    verdict.className = 'score-verdict verdict-weak';
+    verdict.innerHTML = '❌ <strong>Weak confirmation.</strong> Market not supporting this trade. See what it\'s telling you instead.';
+  }
+
+  if (analyseBtn) analyseBtn.style.display = CF.againstPairs.length > 0 ? 'block' : 'none';
+
+  // Clear old analysis when user changes their marks
+  const ar = document.getElementById('analysis-results');
+  if (ar) ar.innerHTML = '';
+}
+
+function cfBuildAnalysis() {
+  const ar = document.getElementById('analysis-results');
+  if (!ar) return;
+  ar.innerHTML = '';
+
+  const divData = (DIVERGENCE[CF.pair] && DIVERGENCE[CF.pair][CF.dir]) ? DIVERGENCE[CF.pair][CF.dir] : [];
+
+  // Collect all ✗ items in strength order
+  const allActions = [...CF.strong, ...CF.moderate, ...CF.weak];
+  const againstItems = allActions.filter(a => {
+    const key = a.pair + '_' + a.strength;
+    return CF.itemStates[key] === 'against';
+  });
+
+  if (againstItems.length === 0) {
+    ar.innerHTML = '<div style="margin:0 16px 16px;padding:14px;background:var(--surface);border-radius:12px;font-size:13px;color:var(--muted);">No pairs marked as not supporting.</div>';
+    return;
+  }
+
+  // Section header
+  ar.innerHTML = '<div style="margin:8px 16px 10px;font-size:10px;letter-spacing:3px;color:#a78bfa;font-family:Space Mono,monospace;text-transform:uppercase;">What the market is telling you</div>';
+
+  const tradeVotes = {};
+  const avoidSet   = [];
+
+  againstItems.forEach((item, idx) => {
+    const weight = item.strength === 'strong' ? 3 : item.strength === 'moderate' ? 2 : 1;
+    const match  = divData.find(d => d.pair === item.pair || d.pair.includes(item.pair));
+
+    const card = document.createElement('div');
+    card.style.cssText = 'margin:0 16px 10px;background:var(--surface);border:1px solid rgba(167,139,250,0.3);border-left:3px solid #a78bfa;border-radius:12px;padding:14px;';
+
+    if (match) {
+      card.innerHTML =
+        '<div style="font-family:Space Mono,monospace;font-size:11px;color:#a78bfa;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">' +
+          item.pair + ' — ' + item.strength + ' — not cooperating</div>' +
+        '<div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:5px;line-height:1.5;">' + match.ifNot + '</div>' +
+        '<div style="font-size:12px;color:var(--muted);line-height:1.5;">' + match.meaning + '</div>';
+      match.betterTrades.forEach(t => { tradeVotes[t] = (tradeVotes[t] || 0) + weight; });
+      if (match.avoid && !avoidSet.includes(match.avoid)) avoidSet.push(match.avoid);
+    } else {
+      card.innerHTML =
+        '<div style="font-family:Space Mono,monospace;font-size:11px;color:#a78bfa;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">' +
+          item.pair + ' — ' + item.strength + ' — not cooperating</div>' +
+        '<div style="font-size:13px;color:var(--muted);line-height:1.5;">This pair is not supporting the trade. One of the currency legs may not be moving as assumed.</div>';
+    }
+    ar.appendChild(card);
+  });
+
+  // Ranked better trades
+  const sorted = Object.entries(tradeVotes).sort((a,b) => b[1]-a[1]);
+  if (sorted.length > 0) {
+    const hdr = document.createElement('div');
+    hdr.style.cssText = 'margin:16px 16px 8px;font-size:10px;letter-spacing:3px;color:var(--text);font-family:Space Mono,monospace;text-transform:uppercase;';
+    hdr.textContent = 'Better trades — ranked by confluence';
+    ar.appendChild(hdr);
+
+    const maxV = sorted[0][1];
+    sorted.forEach(([trade, votes], i) => {
+      const pct = Math.round((votes/maxV)*100);
+      const lbl = pct >= 80 ? 'STRONG' : pct >= 50 ? 'MODERATE' : 'WEAK';
+      const col = pct >= 80 ? 'var(--strong)' : pct >= 50 ? 'var(--moderate)' : 'var(--weak)';
+      const c = document.createElement('div');
+      c.style.cssText = 'margin:0 16px 8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;';
+      c.innerHTML =
+        '<div style="font-family:Space Mono,monospace;font-size:16px;color:'+col+';min-width:20px;">'+(i+1)+'</div>' +
+        '<div style="flex:1;"><div style="font-size:13px;color:var(--text);line-height:1.5;margin-bottom:4px;">'+trade+'</div>' +
+        '<div style="font-size:10px;font-family:Space Mono,monospace;color:'+col+';letter-spacing:1px;">'+lbl+' CONFLUENCE</div></div>';
+      ar.appendChild(c);
+    });
+  }
+
+  // Avoid
+  if (avoidSet.length > 0) {
+    const ah = document.createElement('div');
+    ah.style.cssText = 'margin:16px 16px 8px;font-size:10px;letter-spacing:3px;color:var(--sell);font-family:Space Mono,monospace;text-transform:uppercase;';
+    ah.textContent = 'What to avoid';
+    ar.appendChild(ah);
+    avoidSet.forEach(avoid => {
+      const a = document.createElement('div');
+      a.style.cssText = 'margin:0 16px 8px;padding:10px 14px;background:rgba(255,77,109,0.06);border:1px solid rgba(255,77,109,0.2);border-radius:10px;font-size:13px;color:var(--muted);line-height:1.5;';
+      a.textContent = '✗ ' + avoid;
+      ar.appendChild(a);
+    });
+  }
+
+  const pad = document.createElement('div');
+  pad.style.height = '24px';
+  ar.appendChild(pad);
+
+  setTimeout(() => ar.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+}
 
 // ═══════════════════════════════════
 // PWA
@@ -1200,3 +1173,4 @@ if ('serviceWorker' in navigator) { window.addEventListener('load', () => naviga
 </script>
 </body>
 </html>
+
