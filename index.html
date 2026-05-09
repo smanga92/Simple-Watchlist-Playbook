@@ -285,6 +285,10 @@
 
   <button class="confirm-btn" id="confirm-btn" onclick="runConfirmation()">CHECK THE MARKET →</button>
   <div id="confirm-results"></div>
+
+  <!-- SAVED HISTORY -->
+  <div style="margin:0 16px 8px;font-size:10px;letter-spacing:3px;color:var(--muted);font-family:Space Mono,monospace;text-transform:uppercase;">Pair History</div>
+  <div id="confirm-history-section" style="margin:0 0 32px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin:0 16px 32px;"></div>
 </div>
 
 <!-- BOTTOM NAV -->
@@ -797,6 +801,256 @@ const PAIRS = {
 };
 
 // ═══════════════════════════════════
+// DIVERGENCE DATA
+// When a correlated pair is NOT cooperating, this tells the trader what it means
+// and what alternative trades the market is actually pointing to.
+// ═══════════════════════════════════
+const DIVERGENCE = {
+  AUDCHF: {
+    long: [
+      { pair:'EURAUD', ifNot:'EURAUD not falling — AUD may not actually be strong.', meaning:'The AUD leg of your thesis is not confirmed. The risk-on move may be EUR-specific rather than broad AUD strength. Wait for EURAUD to break down, or look for a pure EUR trade instead.', betterTrades:['Buy EURUSD (EUR strength theme)', 'Buy EURJPY (EUR strength + JPY weakness)'], avoid:'Forcing AUDCHF long without AUD confirmation.' },
+      { pair:'USDCHF', ifNot:'USDCHF not rising — CHF may not actually be weak.', meaning:'CHF weakness is not confirmed. Safe haven demand may still be present. This removes one of the two pillars of the AUDCHF long trade.', betterTrades:['Sell USDCHF (CHF strong = go with the flow)', 'Buy GOLD (CHF strength = fear = gold up)'], avoid:'Ignoring CHF safe haven signals.' },
+      { pair:'GBPJPY', ifNot:'GBPJPY not rising — risk-on mood is not confirmed across the board.', meaning:'JPY crosses are not rallying, which means the risk-on environment may be weaker than expected. AUDCHF longs need a broad risk-on backdrop.', betterTrades:['Wait for GBPJPY and EURJPY to confirm risk-on', 'Sell GOLD instead (safer risk-off hedge)'], avoid:'Trading risk-on pairs in a mixed-sentiment environment.' },
+      { pair:'USDJPY', ifNot:'USDJPY not rising — USD/JPY dynamic not supporting risk-on.', meaning:'USD strength or JPY safe haven demand may be emerging. This weakens the broad risk-on case needed for AUDCHF longs.', betterTrades:['Buy USDJPY if USD strength is the dominant theme', 'Sell GOLD'], avoid:'AUD longs when JPY is strengthening.' },
+      { pair:'US30Cash', ifNot:'US30 not rising — equity markets not confirming risk-on.', meaning:'Stock markets are the broadest risk-on gauge. If they are not participating, the risk-on trade is fragile. Do not buy risk currencies against safe havens.', betterTrades:['Wait for equity confirmation', 'Sell GOLD as a risk-off hedge if equities turn down'], avoid:'All risk-on FX trades when equities are flat or falling.' },
+    ],
+    short: [
+      { pair:'EURAUD', ifNot:'EURAUD not rising — AUD may not be as weak as expected.', meaning:'AUD weakness is not confirmed. The fear/risk-off move may be CHF-specific rather than a broad AUD selloff.', betterTrades:['Sell USDCHF (pure CHF strength trade)', 'Buy GOLD (CHF + fear = gold up)'], avoid:'AUDCHF short without clear AUD weakness.' },
+      { pair:'USDCHF', ifNot:'USDCHF not falling — CHF safe haven bid not materialising.', meaning:'CHF is not strengthening as expected in a risk-off move. The risk-off theme may be incomplete or USD is providing a counter-force.', betterTrades:['Sell GBPJPY or EURJPY (pure risk-off via JPY)', 'Buy GOLD (if fear is the driver but CHF is muted)'], avoid:'Relying on CHF strength if USDCHF is not cooperating.' },
+      { pair:'GOLD', ifNot:'GOLD not rising — true risk-off/fear not confirmed.', meaning:'In a genuine risk-off environment, gold nearly always rises. If it is not, the selloff may be technical rather than sentiment-driven.', betterTrades:['Re-evaluate the risk-off thesis entirely', 'Look for USD-specific trades (USDCHF, USDCAD)'], avoid:'Selling risk assets if gold is not rising.' },
+    ]
+  },
+  EURAUD: {
+    long: [
+      { pair:'EURUSD', ifNot:'EURUSD not rising — EUR strength not confirmed across the board.', meaning:'EUR may not be the driver. The EURAUD move could be entirely AUD weakness rather than EUR strength. Confirm which leg is driving before sizing up.', betterTrades:['Sell AUDCHF (pure AUD weakness trade)', 'Sell GBPJPY if risk-off is the real theme'], avoid:'Trading EUR strength when EURUSD does not confirm it.' },
+      { pair:'EURJPY', ifNot:'EURJPY not rising — EUR not strong across all crosses.', meaning:'If EUR were genuinely strong, EURJPY would also be rising. The move is likely AUD weakness rather than broad EUR demand.', betterTrades:['Sell AUDCHF (AUD weakness is cleaner)', 'Buy GOLD if risk-off is driving AUD down'], avoid:'Overweighting EUR strength when it is an AUD-weakness story.' },
+      { pair:'AUDCHF', ifNot:'AUDCHF not falling — AUD may not actually be weak.', meaning:'AUDCHF and EURAUD share the AUD leg. If AUDCHF is not falling, AUD may be holding up better than expected, weakening the EURAUD long thesis.', betterTrades:['Buy EURUSD or EURJPY for a cleaner EUR strength play', 'Wait for AUDCHF to confirm AUD weakness'], avoid:'EURAUD longs when AUDCHF is not cooperating.' },
+    ],
+    short: [
+      { pair:'EURUSD', ifNot:'EURUSD not falling — EUR is not broadly weak.', meaning:'If EUR were weak, EURUSD would also be falling. The EURAUD short may be driven entirely by AUD strength rather than EUR weakness.', betterTrades:['Buy AUDCHF (pure AUD strength)', 'Buy GBPJPY or EURJPY (risk-on via JPY)'], avoid:'EUR short trades when EURUSD does not confirm weakness.' },
+      { pair:'AUDCHF', ifNot:'AUDCHF not rising — AUD strength not confirmed.', meaning:'Both EURAUD and AUDCHF share the AUD leg. If AUDCHF is not rising, AUD may be weaker than the EURAUD move suggests.', betterTrades:['Sell USDCHF (CHF weakness = risk-on lite)', 'Buy EURUSD if EUR weakness is the driver not AUD'], avoid:'Overcommitting to AUD strength without cross confirmation.' },
+    ]
+  },
+  EURJPY: {
+    long: [
+      { pair:'GBPJPY', ifNot:'GBPJPY not rising — JPY weakness is not confirmed across crosses.', meaning:'EURJPY and GBPJPY share JPY weakness as the key driver. If GBPJPY is not rising alongside, the JPY weakness may be EUR-specific or the signal is premature.', betterTrades:['Buy EURUSD (if EUR is the driver not JPY)', 'Wait for GBPJPY to confirm before adding size'], avoid:'Scaling into JPY cross longs when only one cross is moving.' },
+      { pair:'USDJPY', ifNot:'USDJPY not rising — broad JPY weakness not confirmed.', meaning:'USDJPY is the benchmark JPY pair. JPY crosses rarely sustain rallies when USDJPY is flat. The move may fade.', betterTrades:['Buy USDJPY directly (cleaner JPY weakness trade)', 'Buy US30Cash if the theme is risk-on'], avoid:'Heavy EURJPY longs when USDJPY is not participating.' },
+      { pair:'EURUSD', ifNot:'EURUSD not rising — EUR strength is not the main driver.', meaning:'If EUR were broadly strong, EURUSD would confirm. This tells you JPY weakness is the driver, not EUR strength. Manage accordingly.', betterTrades:['Buy GBPJPY (pure JPY weakness)', 'Buy USDJPY'], avoid:'Sizing up purely on EUR strength when EURUSD disagrees.' },
+    ],
+    short: [
+      { pair:'GBPJPY', ifNot:'GBPJPY not falling — JPY strength not confirmed across crosses.', meaning:'Cross-pair JPY moves should be broad. If GBPJPY is not falling, the risk-off/JPY-strength signal is unreliable for EURJPY.', betterTrades:['Sell EURUSD (if EUR weakness is the driver)', 'Buy GOLD (if fear is the theme but JPY is mixed)'], avoid:'Heavy short exposure on JPY crosses when signal is mixed.' },
+      { pair:'USDJPY', ifNot:'USDJPY not falling — JPY safe haven bid not materialising broadly.', meaning:'USDJPY falling is the clearest sign of broad JPY strength. Without it, the EURJPY selloff may just be EUR-specific weakness.', betterTrades:['Sell EURUSD (EUR weakness without JPY strength)', 'Sell GBPUSD'], avoid:'Treating a EUR selloff as a full risk-off move.' },
+      { pair:'GOLD', ifNot:'GOLD not rising — fear/risk-off not confirmed by the safe haven complex.', meaning:'In real risk-off moves, both JPY and gold strengthen together. If gold is not participating, the risk-off narrative is weak.', betterTrades:['Sell EURUSD or GBPUSD on USD strength instead', 'Wait for gold to confirm before pressing risk-off JPY trades'], avoid:'Aggressive risk-off positioning without gold confirmation.' },
+    ]
+  },
+  EURUSD: {
+    long: [
+      { pair:'GBPUSD', ifNot:'GBPUSD not rising — USD weakness not confirmed broadly.', meaning:'EURUSD and GBPUSD are highly correlated. If GBP is not also rising against USD, the dollar move may be EUR-specific rather than a broad dollar selloff.', betterTrades:['Sell USDCHF (cleaner inverse USD trade)', 'Buy GOLD (USD weakness drives gold regardless)'], avoid:'Treating a EUR-specific move as broad USD weakness.' },
+      { pair:'USDCHF', ifNot:'USDCHF not falling — USD weakness not confirmed by its best inverse.', meaning:'USDCHF is the most reliable inverse to EURUSD. If it is not falling, the USD weakness narrative is suspect. The EURUSD move may not sustain.', betterTrades:['Wait for USDCHF to confirm before adding size', 'Buy GOLD if gold is already rising on the USD move'], avoid:'Scaling into EURUSD longs without USDCHF confirmation.' },
+      { pair:'GOLD', ifNot:'GOLD not rising — USD weakness not confirmed by commodities.', meaning:'Gold is a powerful cross-check for USD weakness. If gold is flat while EURUSD rises, the move may be short-lived or technically driven.', betterTrades:['Look for GBPUSD or AUDUSD setups when confirmed by gold', 'Sell USDCAD if oil/commodity backdrop supports it'], avoid:'Chasing EURUSD without commodity or cross confirmation.' },
+      { pair:'USDCAD', ifNot:'USDCAD not falling — USD not weakening across all pairs.', meaning:'A genuine USD selloff hits USDCAD as reliably as EURUSD. If USDCAD is not falling, the USD weakness is selective and fragile.', betterTrades:['Sell USDCHF (most direct USD inverse)', 'Buy GOLD'], avoid:'Treating selective USD weakness as a trend.' },
+    ],
+    short: [
+      { pair:'GBPUSD', ifNot:'GBPUSD not falling — USD strength not confirmed broadly.', meaning:'If USD were genuinely strong, GBPUSD would be falling too. The EURUSD drop may be EUR-specific weakness, not a USD rally.', betterTrades:['Buy USDCHF (cleaner USD strength trade)', 'Sell GOLD'], avoid:'Trading broad USD strength when only EUR is falling.' },
+      { pair:'USDCHF', ifNot:'USDCHF not rising — USD strength not confirmed by its best proxy.', meaning:'USDCHF is the tightest inverse to EURUSD. If it is not rising, USD strength is not materialising as expected.', betterTrades:['Sell GBPUSD for GBP weakness instead', 'Sell EURJPY for EUR weakness with JPY strength'], avoid:'Heavy EURUSD shorts without USDCHF and GBPUSD confirmation.' },
+      { pair:'GOLD', ifNot:'GOLD not falling — USD strength not confirmed by commodities.', meaning:'Gold falling is one of the strongest signals of genuine USD strength. If gold is holding up, USD may not be as strong as the EURUSD drop suggests.', betterTrades:['Wait for gold to confirm', 'Buy USDCHF or USDCAD if USD strength appears elsewhere'], avoid:'Scaling short EURUSD when gold refuses to fall.' },
+    ]
+  },
+  GBPCAD: {
+    long: [
+      { pair:'GBPUSD', ifNot:'GBPUSD not rising — GBP may not be broadly strong.', meaning:'GBP strength should show up in GBPUSD as well. If it is not, the GBPCAD move may be driven entirely by CAD weakness rather than GBP demand.', betterTrades:['Buy USDCAD (pure CAD weakness trade)', 'Wait for GBPUSD to confirm GBP before pressing GBPCAD'], avoid:'GBP strength trades when GBPUSD is flat.' },
+      { pair:'GBPJPY', ifNot:'GBPJPY not rising — GBP strength not confirmed across pairs.', meaning:'GBP strength should lift all GBP pairs. A divergence here suggests GBP is not the driver — CAD weakness is.', betterTrades:['Buy USDCAD or sell USDCHF for the USD/CAD theme', 'Wait for broader GBP confirmation'], avoid:'Doubling up on GBP when cross confirmation is missing.' },
+      { pair:'USDCAD', ifNot:'USDCAD not rising — CAD weakness not confirmed by USD pairs.', meaning:'CAD weakness should show in USDCAD. If it is not, CAD may be holding up and the GBPCAD move may fade.', betterTrades:['Buy GBPUSD (GBP strength if that is the driver)', 'Buy GBPJPY'], avoid:'GBPCAD longs without USDCAD confirming CAD weakness.' },
+    ],
+    short: [
+      { pair:'GBPUSD', ifNot:'GBPUSD not falling — GBP not broadly weak.', meaning:'If GBP were genuinely weak, GBPUSD would fall too. The GBPCAD short may be a CAD-strength story rather than GBP weakness.', betterTrades:['Sell USDCAD (pure CAD strength)', 'Buy GBPJPY if risk-on is driving CAD strong'], avoid:'GBP weakness trades when GBPUSD does not confirm.' },
+      { pair:'USDCAD', ifNot:'USDCAD not falling — CAD strength not confirmed.', meaning:'CAD strength should push USDCAD down as well. Without this, the GBPCAD move may be GBP-specific weakness rather than real CAD demand.', betterTrades:['Sell GBPUSD (GBP weakness theme)', 'Sell GBPJPY'], avoid:'Assuming CAD is the driver without USDCAD confirmation.' },
+    ]
+  },
+  GBPJPY: {
+    long: [
+      { pair:'EURJPY', ifNot:'EURJPY not rising — JPY weakness not confirmed across crosses.', meaning:'GBPJPY and EURJPY share JPY as the counter currency. When JPY is truly weak, both cross pairs rise. Divergence here suggests the move is GBP-specific and may not sustain.', betterTrades:['Buy GBPUSD (pure GBP strength if JPY is not cooperating)', 'Buy US30Cash or BTCUSD if risk-on is the theme'], avoid:'Overexposing to JPY crosses when only one is moving.' },
+      { pair:'USDJPY', ifNot:'USDJPY not rising — broad JPY weakness not confirmed.', meaning:'USDJPY is the benchmark for JPY direction. Without it rising, the JPY weakness in GBPJPY may be temporary or a GBP-driven anomaly.', betterTrades:['Buy USDJPY (cleaner JPY weakness trade)', 'Buy EURUSD (if risk-on = USD also weak)'], avoid:'Treating GBPJPY as a risk-on signal when USDJPY disagrees.' },
+      { pair:'US30Cash', ifNot:'US30 not rising — risk-on mood not confirmed by equities.', meaning:'GBPJPY is the go-to risk sentiment barometer. If US stocks are not rising alongside it, the risk-on move lacks confirmation and is more likely to reverse.', betterTrades:['Wait for equity market confirmation', 'Buy GBPUSD for a pure GBP strength play'], avoid:'Pressing risk-on trades when equities are not participating.' },
+      { pair:'BTCUSD', ifNot:'BTCUSD not rising — risk appetite not broad.', meaning:'Crypto and JPY crosses both amplify risk sentiment. If BTC is flat while GBPJPY rises, the move is narrower and less likely to run.', betterTrades:['Tighten stops on GBPJPY', 'Look for GBPUSD or USDJPY as cleaner plays'], avoid:'Over-leveraging risk-on trades when BTC does not confirm.' },
+    ],
+    short: [
+      { pair:'EURJPY', ifNot:'EURJPY not falling — JPY strength not confirmed across crosses.', meaning:'JPY safe haven flows should hit all crosses equally. If EURJPY is not falling, the GBPJPY drop may be GBP-specific weakness rather than real risk-off.', betterTrades:['Sell GBPUSD (pure GBP weakness)', 'Buy GOLD (if fear is the real driver)'], avoid:'Risk-off positioning when only one JPY cross is moving.' },
+      { pair:'USDJPY', ifNot:'USDJPY not falling — JPY safe haven not in demand broadly.', meaning:'A genuine risk-off JPY surge hits USDJPY hard. Without it, the GBPJPY selloff is probably a GBP story, not a risk-off story.', betterTrades:['Sell GBPUSD (GBP weakness without JPY strength)', 'Sell GBPCAD'], avoid:'Calling risk-off when USDJPY and gold are not cooperating.' },
+      { pair:'GOLD', ifNot:'GOLD not rising — risk-off/fear narrative not confirmed.', meaning:'GBPJPY shorts and gold longs both work in fear-driven markets. If gold is not rising, the risk-off rationale is missing its most reliable confirming indicator.', betterTrades:['Sell EURUSD or GBPUSD on USD strength', 'Re-examine whether GBPJPY selloff is risk-off or GBP-specific'], avoid:'Treating every GBPJPY dip as a risk-off opportunity.' },
+    ]
+  },
+  GBPUSD: {
+    long: [
+      { pair:'EURUSD', ifNot:'EURUSD not rising — USD weakness not broad.', meaning:'GBPUSD and EURUSD are highly correlated. If EURUSD is not rising, the GBP move is GBP-specific rather than a dollar selloff. The trade is thinner and riskier.', betterTrades:['Buy GBPJPY or GBPCAD (pure GBP strength plays)', 'Buy GOLD if USD weakness is the theme but EURUSD lags'], avoid:'Treating GBP-specific strength as broad USD weakness.' },
+      { pair:'USDCHF', ifNot:'USDCHF not falling — USD weakness not confirmed by its primary inverse.', meaning:'USDCHF is the sharpest real-time indicator of USD weakness. If it is not falling, USD is not really weakening and GBPUSD gains may not sustain.', betterTrades:['Wait for USDCHF to turn', 'Buy GBPJPY for a pure GBP strength trade instead'], avoid:'Scaling into GBPUSD longs when USDCHF is unresponsive.' },
+      { pair:'GOLD', ifNot:'GOLD not rising — USD weakness not confirmed by commodities.', meaning:'USD weakness should lift gold reliably. Without it, the dollar move lacks depth.', betterTrades:['Buy GBPCAD or GBPJPY (GBP-strength focus)', 'Sell USDCHF for USD weakness'], avoid:'Forcing USD-weakness trades when gold says otherwise.' },
+    ],
+    short: [
+      { pair:'EURUSD', ifNot:'EURUSD not falling — USD strength not confirmed broadly.', meaning:'The GBPUSD drop may be GBP-specific weakness rather than a dollar rally. This is a thinner, lower-conviction setup.', betterTrades:['Buy USDCHF (USD strength without GBP noise)', 'Sell GBPJPY or GBPCAD (GBP weakness plays)'], avoid:'Trading USD strength when EURUSD does not confirm.' },
+      { pair:'USDCHF', ifNot:'USDCHF not rising — USD strength not confirmed by its primary proxy.', meaning:'A genuine dollar rally should lift USDCHF. Without it, the GBPUSD fall is a GBP story.', betterTrades:['Sell GBPJPY (GBP weakness + risk-off)', 'Sell EURUSD for a cleaner EUR weakness trade'], avoid:'Scaling GBPUSD short when USD is not broadly strong.' },
+    ]
+  },
+  USDCAD: {
+    long: [
+      { pair:'EURUSD', ifNot:'EURUSD not falling — USD strength not confirmed broadly.', meaning:'USD strength should push EURUSD down. Without it, the USDCAD rise may be CAD-specific weakness rather than a real dollar rally.', betterTrades:['Buy USDCHF (pure USD strength)', 'Sell GBPUSD'], avoid:'Treating CAD weakness as broad USD strength.' },
+      { pair:'USDCHF', ifNot:'USDCHF not rising — USD strength suspect.', meaning:'USDCHF and USDCAD should rise together in a USD-bull environment. Divergence means USD is not the main driver — CAD weakness or oil may be.', betterTrades:['Buy GBPCAD (CAD weakness play without USD dependence)', 'Look at oil direction for context'], avoid:'Heavy USD long positions without multi-pair USD confirmation.' },
+      { pair:'GBPCAD', ifNot:'GBPCAD not rising — CAD weakness not showing up across pairs.', meaning:'If CAD were broadly weak, GBPCAD would also rise. Flat GBPCAD suggests the USDCAD move may be USD-specific rather than a CAD-weakness theme.', betterTrades:['Buy USDCHF or USDJPY for pure USD strength', 'Wait for GBPCAD to confirm CAD weakness'], avoid:'CAD weakness trades when only one pair shows it.' },
+    ],
+    short: [
+      { pair:'EURUSD', ifNot:'EURUSD not rising — USD weakness not confirmed.', meaning:'CAD strength should come with broad USD softness. If EURUSD is flat, the USDCAD drop may be oil/CAD-specific rather than a USD selloff.', betterTrades:['Sell GBPCAD (CAD strength without USD dependence)', 'Buy GOLD if USD weakness is your view'], avoid:'USD weakness trades when only USDCAD is moving.' },
+      { pair:'GBPCAD', ifNot:'GBPCAD not falling — CAD strength not confirmed across pairs.', meaning:'CAD strength should hit all CAD pairs. If GBPCAD is flat, the move is likely USD-driven rather than CAD strength.', betterTrades:['Sell USDCHF (USD weakness trade)', 'Buy EURUSD'], avoid:'Treating USDCAD drops as CAD strength when GBPCAD disagrees.' },
+    ]
+  },
+  USDCHF: {
+    long: [
+      { pair:'EURUSD', ifNot:'EURUSD not falling — USDCHF rising without its primary inverse confirming.', meaning:'EURUSD and USDCHF are almost perfectly inversely correlated. If EURUSD is not falling, the USDCHF move is CHF-specific (CHF weakness/risk-on) rather than USD strength. This is a weaker signal.', betterTrades:['Buy USDJPY or USDCAD (pure USD strength)', 'Buy AUDCHF (CHF weakness play)'], avoid:'Pressing USD strength when EURUSD does not confirm.' },
+      { pair:'GBPUSD', ifNot:'GBPUSD not falling — USD strength not confirmed broadly.', meaning:'USD bull moves should push both GBPUSD and EURUSD down. Only USDCHF rising points to CHF weakness, not dollar strength.', betterTrades:['Buy AUDCHF (CHF weakness + risk-on)', 'Buy GBPJPY or EURJPY if risk-on is the theme'], avoid:'Scaling USD positions without broad confirmation.' },
+      { pair:'GOLD', ifNot:'GOLD not falling — USD strength not confirmed by the commodity market.', meaning:'Strong USD reliably pressures gold. If gold is holding up, USD is not genuinely strong — CHF is just weaker than usual.', betterTrades:['Buy AUDCHF (CHF weakness without relying on USD)', 'Sell GBPJPY if risk-on is the story'], avoid:'Heavy USD long exposure when gold is not cooperating.' },
+    ],
+    short: [
+      { pair:'EURUSD', ifNot:'EURUSD not rising — USDCHF falling without its inverse confirming.', meaning:'These two pairs are mirror images. USDCHF dropping without EURUSD rising means CHF is surging on safe haven flows, not USD weakness. Different trade, different risk.', betterTrades:['Buy GOLD (CHF safe haven + USD weakness = gold very bullish)', 'Sell GBPJPY (risk-off via JPY)'], avoid:'Treating CHF safe haven demand as a pure USD weakness trade.' },
+      { pair:'GBPUSD', ifNot:'GBPUSD not rising — USD weakness not confirmed broadly.', meaning:'Broad USD weakness should lift GBP, EUR, and AUD alike. If GBPUSD is not rising, the USDCHF drop is a CHF safe haven story.', betterTrades:['Buy GOLD (CHF strength + safe haven)', 'Sell AUDCHF (CHF safe haven demand)'], avoid:'USD weakness FX trades when only CHF pairs are moving.' },
+      { pair:'GOLD', ifNot:'GOLD not rising — safe haven complex not fully engaged.', meaning:'USDCHF drops and gold rises are a classic risk-off tandem. Without gold participating, the CHF move may be more technical than fundamental.', betterTrades:['Reassess the risk-off thesis', 'Buy EURUSD for USD weakness only'], avoid:'Assuming full risk-off when gold is absent from the move.' },
+    ]
+  },
+  USDJPY: {
+    long: [
+      { pair:'EURJPY', ifNot:'EURJPY not rising — JPY weakness not broad across crosses.', meaning:'JPY weakness should be universal across crosses. If EURJPY is not rising, the USDJPY move may be USD-specific strength rather than a JPY selloff.', betterTrades:['Buy USDCHF or USDCAD (pure USD strength)', 'Buy US30Cash if USD strength = risk-on'], avoid:'JPY-weakness trades when only one pair confirms it.' },
+      { pair:'GBPJPY', ifNot:'GBPJPY not rising — JPY weakness not confirmed across multiple crosses.', meaning:'Both EURJPY and GBPJPY should rally when JPY is weak. Divergence points to USD-driven USDJPY, not broad JPY weakness.', betterTrades:['Buy EURUSD or GBPUSD if the theme is USD + risk-on', 'Focus on USD pairs if USD strength is the driver'], avoid:'Treating USDJPY longs as a risk-on play when JPY crosses disagree.' },
+      { pair:'USDCHF', ifNot:'USDCHF not rising — USD strength not confirmed by its primary proxy.', meaning:'USD strength should lift both USDJPY and USDCHF. Without USDCHF confirmation, the USDJPY rise may be risk-on or JPY-specific rather than a dollar move.', betterTrades:['Buy EURJPY or GBPJPY (risk-on / JPY weakness focus)', 'Buy US30Cash or BTCUSD'], avoid:'Scaling USD longs without multi-pair USD confirmation.' },
+    ],
+    short: [
+      { pair:'EURJPY', ifNot:'EURJPY not falling — JPY strength not confirmed across crosses.', meaning:'If JPY were broadly strengthening on safe haven flows, EURJPY and GBPJPY would both be falling. Without them, the USDJPY drop is likely USD weakness rather than JPY demand.', betterTrades:['Sell EURUSD or GBPUSD (USD weakness)', 'Sell USDCHF'], avoid:'Risk-off trades when JPY crosses are not confirming safe haven demand.' },
+      { pair:'GOLD', ifNot:'GOLD not rising — USD weakness / risk-off not confirmed by safe havens.', meaning:'Gold and JPY both function as safe havens. If gold is not rising alongside a falling USDJPY, the signal is less reliable and may be technical.', betterTrades:['Sell USDCHF (USD weakness more reliable without JPY)', 'Buy EURUSD'], avoid:'Heavy risk-off positioning when gold and USDJPY diverge.' },
+      { pair:'USDCHF', ifNot:'USDCHF not falling — USD weakness not confirmed.', meaning:'USD weakness should show across all USD pairs. If USDCHF is flat, the USDJPY drop is a JPY safe haven story rather than USD selling.', betterTrades:['Sell GBPJPY or EURJPY (pure risk-off via JPY)', 'Buy GOLD'], avoid:'USD weakness trades when only USDJPY is moving.' },
+    ]
+  },
+  BTCUSD: {
+    long: [
+      { pair:'US30Cash', ifNot:'US30 not rising — broad risk appetite not confirmed by equities.', meaning:'BTC and the Dow are highly correlated in risk-on environments. If equities are not participating, the BTC move may be crypto-specific speculation rather than a genuine risk-on rally.', betterTrades:['Wait for equity confirmation before adding to crypto longs', 'Buy GBPJPY or EURJPY if risk-on is strengthening'], avoid:'Treating a crypto-only rally as a broad risk-on signal.' },
+      { pair:'EURUSD', ifNot:'EURUSD not rising — USD weakness not confirmed in FX.', meaning:'BTC tends to rise on USD weakness. If FX markets are not showing dollar softness, the BTC move is more speculative and less likely to sustain.', betterTrades:['Sell USDCHF (USD weakness play in FX)', 'Buy GOLD (USD weakness + safe haven)'], avoid:'Using BTC alone to size up risk-on trades.' },
+    ],
+    short: [
+      { pair:'US30Cash', ifNot:'US30 not falling — equities not confirming risk-off.', meaning:'BTC and equities fall together in risk-off. If stocks are holding up, the BTC selloff may be crypto-specific rather than a market-wide fear event.', betterTrades:['Sell GBPJPY or EURJPY (risk-off via JPY)', 'Buy GOLD (risk-off safe haven)'], avoid:'Pressing risk-off trades when equities are not confirming.' },
+      { pair:'GOLD', ifNot:'GOLD not rising — safe haven demand not confirmed.', meaning:'In genuine risk-off, money flows from BTC and stocks into gold and JPY. If gold is flat while BTC falls, the selloff may be crypto-specific, not systemic.', betterTrades:['Sell EURUSD or GBPUSD (USD strength)', 'Sell GBPJPY (risk-off via JPY if it is confirming)'], avoid:'Assuming systemic risk-off from crypto moves alone.' },
+    ]
+  },
+  GOLD: {
+    long: [
+      { pair:'EURUSD', ifNot:'EURUSD not rising — USD weakness not confirmed in FX markets.', meaning:'Gold buying on USD weakness should also lift EURUSD. If EURUSD is flat, the gold move may be driven by fear/safe haven demand rather than USD weakness. Both are valid but require different follow-on trades.', betterTrades:['Sell USDCHF (safe haven + USD weakness)', 'Buy GBPJPY short if fear is the driver (risk-off via JPY)'], avoid:'Assuming USD weakness drives gold when FX is not confirming.' },
+      { pair:'USDCHF', ifNot:'USDCHF not falling — safe haven complex not fully aligned.', meaning:'In full safe haven mode, CHF and gold both strengthen while USD weakens. USDCHF not falling is a meaningful divergence from the expected pattern.', betterTrades:['Sell GBPJPY or EURJPY (risk-off via JPY crosses)', 'Stay in gold but reduce size — signal is partial'], avoid:'Over-sizing gold longs when CHF is not cooperating.' },
+      { pair:'USDJPY', ifNot:'USDJPY not falling — JPY safe haven demand not present.', meaning:'Gold and JPY both serve as safe havens. If USDJPY is not falling in tandem with gold rising, the gold move is more likely USD-weakness-driven than fear-driven. Lower probability of sustained gold rally without JPY confirming.', betterTrades:['Sell EURUSD (USD weakness focus)', 'Sell USDCAD'], avoid:'Expecting explosive gold moves without JPY safe haven confirmation.' },
+    ],
+    short: [
+      { pair:'EURUSD', ifNot:'EURUSD not falling — USD strength not confirmed in FX.', meaning:'Gold selling and EURUSD falling should happen together when USD is strong. If EURUSD is holding, USD may not be the driver — gold could be falling on reduced fear/risk-on alone.', betterTrades:['Buy GBPJPY or USDJPY (risk-on focus)', 'Buy US30Cash'], avoid:'Treating gold shorts as a USD-strength trade without FX confirmation.' },
+      { pair:'USDCHF', ifNot:'USDCHF not rising — USD strength not confirmed by its primary proxy.', meaning:'USD strength and gold falling should go hand in hand. Without USDCHF rising, the gold selloff may be risk-on rather than dollar-driven.', betterTrades:['Buy US30Cash (risk-on focus)', 'Buy GBPJPY or EURJPY'], avoid:'Assuming USD strength from gold weakness without FX confirmation.' },
+      { pair:'US30Cash', ifNot:'US30 not rising — risk-on mood not confirmed by equities.', meaning:'Gold falling in risk-on environments usually coincides with equity gains. If stocks are not rising, gold weakness may be technical rather than sentiment-driven.', betterTrades:['Re-examine whether risk-on is genuinely in play', 'Sell EURUSD or GBPUSD if USD strength is the real driver'], avoid:'Shorting gold into a risk-on vacuum.' },
+    ]
+  },
+  'US30Cash': {
+    long: [
+      { pair:'BTCUSD', ifNot:'BTCUSD not rising — broad risk appetite not confirmed.', meaning:'Risk-on moves typically lift both stocks and crypto. If BTC is not rising, the equity rally may be narrow or sector-driven rather than a broad risk-on wave.', betterTrades:['Buy GBPJPY or EURJPY (risk-on via FX)', 'Buy EURUSD if Fed dovishness is the specific driver'], avoid:'Overcommitting to risk-on when crypto does not confirm.' },
+      { pair:'GBPJPY', ifNot:'GBPJPY not rising — risk-on not confirmed in FX carry trades.', meaning:'GBPJPY is one of the most reliable FX risk-on proxies. Divergence from equities suggests the equity rally is isolated (perhaps sector news) rather than a broad macro risk-on event.', betterTrades:['Play the equity move in isolation', 'Buy EURUSD if Fed dovishness is driving stocks'], avoid:'Assuming FX risk-on trades based on equity moves alone.' },
+      { pair:'EURUSD', ifNot:'EURUSD not rising — Fed dovishness not confirmed in FX.', meaning:'Dovish Fed = USD weakness = EURUSD and stocks both rise. If EURUSD is flat, the stock move may not be Fed-driven, limiting cross-market opportunity.', betterTrades:['Buy GBPJPY (risk-on without USD weakness dependency)', 'Buy BTCUSD (risk appetite play)'], avoid:'Expecting USD weakness just because stocks are rising.' },
+    ],
+    short: [
+      { pair:'BTCUSD', ifNot:'BTCUSD not falling — risk-off not confirmed broadly.', meaning:'Equities and crypto fall together in genuine risk-off. If BTC is holding up, the equity selloff may be technical or sector-specific rather than a fear-driven market event.', betterTrades:['Buy GOLD (if fear is the theme regardless)', 'Sell GBPJPY or EURJPY (risk-off via FX)'], avoid:'Risk-off FX trades based on equity weakness without cross-market confirmation.' },
+      { pair:'GOLD', ifNot:'GOLD not rising — flight to safety not confirmed.', meaning:'The classic risk-off trade is sell stocks, buy gold. If gold is not rising alongside a falling US30, the equity move may be sector-driven, not macro fear.', betterTrades:['Sell EURUSD or GBPUSD if USD strength is driving the selloff', 'Sell GBPJPY or AUDCHF if risk-off gains momentum'], avoid:'Aggressive risk-off positioning without gold confirming fear.' },
+      { pair:'GBPJPY', ifNot:'GBPJPY not falling — risk-off not yet hitting FX markets.', meaning:'GBPJPY is the first to react to risk-off in FX. If it is not falling, the equity weakness has not yet crossed over into macro risk-off territory.', betterTrades:['Wait for FX risk-off confirmation', 'Buy GOLD as an early risk-off hedge'], avoid:'Full risk-off FX positioning before FX markets confirm the move.' },
+    ]
+  }
+};
+
+// ═══════════════════════════════════
+// CONFIRM HISTORY (localStorage persistence)
+// ═══════════════════════════════════
+const HISTORY_KEY = 'fx_confirm_history_v1';
+
+function historyLoad() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || {}; } catch(e) { return {}; }
+}
+function historySave(data) {
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(data)); } catch(e) {}
+}
+function historyKey(pair, dir) { return pair + '_' + dir; }
+
+function historyRecord(pair, dir, itemStates, confirmedCount, againstPairs) {
+  const h = historyLoad();
+  const k = historyKey(pair, dir);
+  h[k] = {
+    pair, dir, itemStates, confirmedCount, againstPairs,
+    savedAt: new Date().toISOString(),
+    pct: CF.total > 0 ? Math.round((confirmedCount / CF.total) * 100) : 0
+  };
+  historySave(h);
+  renderHistoryList();
+}
+
+function renderHistoryList() {
+  const container = document.getElementById('confirm-history-section');
+  if (!container) return;
+  const h = historyLoad();
+  const entries = Object.values(h).sort((a,b) => b.savedAt.localeCompare(a.savedAt));
+  if (entries.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:16px;">No saved pairs yet. Run a confirmation check to start tracking.</div>';
+    return;
+  }
+  container.innerHTML = '';
+  entries.forEach(e => {
+    const col = e.pct >= 75 ? 'var(--buy)' : e.pct >= 45 ? 'var(--moderate)' : 'var(--sell)';
+    const emoji = e.pct >= 75 ? '✅' : e.pct >= 45 ? '⚠️' : '❌';
+    const dirLabel = e.dir === 'long' ? '▲ LONG' : '▼ SHORT';
+    const dirCol = e.dir === 'long' ? 'var(--buy)' : 'var(--sell)';
+    const d = new Date(e.savedAt);
+    const dateStr = d.toLocaleDateString(undefined, { month:'short', day:'numeric' }) + ' ' + d.toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit' });
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.15s;';
+    row.innerHTML =
+      '<div style="font-family:Space Mono,monospace;font-size:14px;font-weight:700;min-width:70px;">' + e.pair + '</div>' +
+      '<div style="font-family:Space Mono,monospace;font-size:11px;color:' + dirCol + ';min-width:52px;">' + dirLabel + '</div>' +
+      '<div style="flex:1;display:flex;align-items:center;gap:6px;">' +
+        '<div style="flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;">' +
+          '<div style="width:' + e.pct + '%;height:100%;background:' + col + ';border-radius:3px;"></div>' +
+        '</div>' +
+        '<span style="font-family:Space Mono,monospace;font-size:10px;color:' + col + ';min-width:32px;">' + e.pct + '%</span>' +
+      '</div>' +
+      '<div style="font-size:10px;color:var(--muted);text-align:right;">' + dateStr + '</div>';
+    row.addEventListener('mouseenter', () => row.style.background = 'var(--surface2)');
+    row.addEventListener('mouseleave', () => row.style.background = '');
+    row.addEventListener('click', () => restoreHistory(e));
+    container.appendChild(row);
+  });
+
+  // Clear all button
+  const clearBtn = document.createElement('div');
+  clearBtn.style.cssText = 'text-align:center;padding:12px;';
+  clearBtn.innerHTML = '<button onclick="historyClearAll()" style="background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:11px;font-family:Space Mono,monospace;padding:7px 16px;cursor:pointer;letter-spacing:1px;">CLEAR ALL HISTORY</button>';
+  container.appendChild(clearBtn);
+}
+
+function historyClearAll() {
+  if (!confirm('Clear all saved pair history?')) return;
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistoryList();
+}
+
+function restoreHistory(e) {
+  // Set UI selectors to match saved state
+  document.getElementById('confirm-pair').value = e.pair;
+  setConfirmDir(e.dir);
+
+  // Run confirmation to rebuild the UI, then restore the saved marks
+  runConfirmation(e.itemStates);
+
+  // Scroll to results
+  setTimeout(() => {
+    const el = document.getElementById('confirm-results');
+    if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+  }, 200);
+}
+
+// ═══════════════════════════════════
 // TAB SWITCHING
 // ═══════════════════════════════════
 function switchTab(tab) {
@@ -806,6 +1060,7 @@ function switchTab(tab) {
   document.getElementById(tab).classList.remove('hidden');
   document.getElementById('nav-playbook').classList.toggle('active', tab === 'home');
   document.getElementById('nav-confirm').classList.toggle('active', tab === 'confirm');
+  if (tab === 'confirm') renderHistoryList();
 }
 
 // ═══════════════════════════════════
@@ -882,7 +1137,7 @@ function setConfirmDir(dir) {
   CF = {};
 }
 
-function runConfirmation() {
+function runConfirmation(savedItemStates) {
   const pair = document.getElementById('confirm-pair').value;
   const dirKey = confirmDir === 'long' ? 'buy' : 'sell';
   const pairData = PAIRS[pair][dirKey];
@@ -932,9 +1187,9 @@ function runConfirmation() {
   resultsEl.appendChild(hint);
 
   // --- Checklist groups ---
-  cfBuildGroup(CF.strong,   'strong',   '🔴 Must confirm — non-negotiable');
-  cfBuildGroup(CF.moderate, 'moderate', '🟡 Should confirm — important');
-  cfBuildGroup(CF.weak,     'weak',     '⚪ Nice to have — bonus confluence');
+  cfBuildGroup(CF.strong,   'strong',   '🔴 Must confirm — non-negotiable', savedItemStates);
+  cfBuildGroup(CF.moderate, 'moderate', '🟡 Should confirm — important', savedItemStates);
+  cfBuildGroup(CF.weak,     'weak',     '⚪ Nice to have — bonus confluence', savedItemStates);
 
   // --- Analyse button (DOM element, not innerHTML) ---
   const analyseBtn = document.createElement('button');
@@ -949,10 +1204,24 @@ function runConfirmation() {
   analysisDiv.id = 'analysis-results';
   resultsEl.appendChild(analysisDiv);
 
+  // If restoring from history, rebuild states
+  if (savedItemStates) {
+    Object.entries(savedItemStates).forEach(([key, state]) => {
+      if (state !== 'unchecked') {
+        const pairName = key.replace(/_strong$|_moderate$|_weak$/, '');
+        // apply each saved state by simulating taps
+        const toggleTo = state; // 'confirmed' or 'against'
+        CF.itemStates[key] = 'unchecked'; // reset so toggle starts fresh
+        cfToggleItem(key, pairName); // first tap = confirmed
+        if (toggleTo === 'against') cfToggleItem(key, pairName); // second tap = against
+      }
+    });
+  }
+
   setTimeout(() => scoreEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
 }
 
-function cfBuildGroup(items, strengthKey, groupLabel) {
+function cfBuildGroup(items, strengthKey, groupLabel, savedItemStates) {
   if (items.length === 0) return;
   const resultsEl = document.getElementById('confirm-results');
 
@@ -1030,6 +1299,8 @@ function cfToggleItem(stateKey, pairName) {
   }
 
   cfUpdateScore();
+  // Auto-save to history after every tap
+  historyRecord(CF.pair, CF.dir, CF.itemStates, CF.confirmedCount, CF.againstPairs);
 }
 
 function cfUpdateScore() {
@@ -1181,6 +1452,9 @@ document.getElementById('install-btn').addEventListener('click', async () => {
 });
 function dismissInstall() { document.getElementById('install-banner').style.display = 'none'; }
 if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('sw.js')); }
+
+// Init history list on page load
+renderHistoryList();
 </script>
 </body>
 </html>
