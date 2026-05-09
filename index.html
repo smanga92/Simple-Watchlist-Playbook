@@ -180,6 +180,22 @@
   .btn-dismiss { padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; }
 
   @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* DIVERGE TAB */
+  #diverge { padding-bottom: 80px; background: radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.08) 0%, transparent 55%); }
+  .div-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 10px; position: relative; overflow: hidden; animation: slideUp 0.3s ease both; }
+  .div-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: #a78bfa; }
+  .div-card-title { font-family: 'Space Mono', monospace; font-size: 12px; color: #a78bfa; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+  .div-meaning { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 10px; line-height: 1.5; }
+  .div-section-label { font-size: 10px; letter-spacing: 2px; font-family: 'Space Mono', monospace; color: var(--muted); text-transform: uppercase; margin: 8px 0 5px; }
+  .div-trade-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; background: var(--surface2); border-radius: 8px; margin-bottom: 5px; font-size: 13px; color: var(--text); line-height: 1.4; }
+  .div-trade-item::before { content: '→'; color: #a78bfa; font-weight: 700; flex-shrink: 0; }
+  .div-avoid-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; background: rgba(255,77,109,0.06); border: 1px solid rgba(255,77,109,0.15); border-radius: 8px; margin-bottom: 5px; font-size: 13px; color: var(--muted); line-height: 1.4; }
+  .div-avoid-item::before { content: '✗'; color: var(--sell); font-weight: 700; flex-shrink: 0; }
+  .div-expected { font-size: 12px; color: var(--muted); font-family: 'Space Mono', monospace; margin-bottom: 8px; }
+  .div-expected span { color: var(--moderate); font-weight: 500; }
+  .no-div { text-align: center; padding: 32px 16px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+
 </style>
 </head>
 <body>
@@ -271,6 +287,52 @@
   <div id="confirm-results"></div>
 </div>
 
+<!-- DIVERGE PAGE -->
+<div id="diverge" class="page hidden">
+  <div class="confirm-header" style="background: radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.10) 0%, transparent 55%);">
+    <span class="logo" style="color:#a78bfa;">What's Moving?</span>
+    <h1>A Pair Isn't<br>Confirming?</h1>
+    <p>Pick your trade and the pair that's<br>not cooperating. Find out what the<br>market is really telling you.</p>
+  </div>
+
+  <div class="setup-card">
+    <div class="setup-row">
+      <label>MY TRADE</label>
+      <select class="setup-select" id="div-pair">
+        <option value="AUDCHF">AUDCHF</option>
+        <option value="EURAUD">EURAUD</option>
+        <option value="EURJPY">EURJPY</option>
+        <option value="EURUSD">EURUSD</option>
+        <option value="GBPCAD">GBPCAD</option>
+        <option value="GBPJPY">GBPJPY</option>
+        <option value="GBPUSD">GBPUSD</option>
+        <option value="USDCAD">USDCAD</option>
+        <option value="USDCHF">USDCHF</option>
+        <option value="USDJPY">USDJPY</option>
+        <option value="BTCUSD">BTCUSD</option>
+        <option value="GOLD">GOLD</option>
+        <option value="US30Cash">US30Cash</option>
+      </select>
+    </div>
+    <div class="setup-row">
+      <label>DIR</label>
+      <div class="dir-pills">
+        <button class="dir-pill long-active" id="div-pill-long" onclick="setDivDir('long')">▲ LONG</button>
+        <button class="dir-pill" id="div-pill-short" onclick="setDivDir('short')">▼ SHORT</button>
+      </div>
+    </div>
+    <div class="setup-row">
+      <label>NOT MOVING</label>
+      <select class="setup-select" id="div-problem-pair">
+        <option value="">— tap Generate first —</option>
+      </select>
+    </div>
+  </div>
+
+  <button class="confirm-btn" id="div-gen-btn" onclick="generateDivergence()" style="background:#a78bfa; color:#000;">WHAT IS THE MARKET SAYING? →</button>
+  <div id="div-results"></div>
+</div>
+
 <!-- BOTTOM NAV -->
 <div class="bottom-nav">
   <div class="nav-tab active" id="nav-playbook" onclick="switchTab('home')">
@@ -280,6 +342,10 @@
   <div class="nav-tab" id="nav-confirm" onclick="switchTab('confirm')">
     <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
     <span>CONFIRM</span>
+  </div>
+  <div class="nav-tab" id="nav-diverge" onclick="switchTab('diverge')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+    <span>DIVERGE</span>
   </div>
 </div>
 
@@ -784,12 +850,13 @@ const PAIRS = {
 // TAB SWITCHING
 // ═══════════════════════════════════
 function switchTab(tab) {
-  ['home','confirm'].forEach(p => document.getElementById(p).classList.add('hidden'));
+  ['home','confirm','diverge'].forEach(p => document.getElementById(p).classList.add('hidden'));
   document.getElementById('detail').classList.add('hidden');
   document.getElementById('detail').style.display = 'none';
   document.getElementById(tab).classList.remove('hidden');
   document.getElementById('nav-playbook').classList.toggle('active', tab === 'home');
   document.getElementById('nav-confirm').classList.toggle('active', tab === 'confirm');
+  document.getElementById('nav-diverge').classList.toggle('active', tab === 'diverge');
 }
 
 // ═══════════════════════════════════
@@ -1012,6 +1079,118 @@ function runConfirmation() {
   buildGroup(weak,     'weak',     'Nice to have — bonus confluence', '⚪');
 
   setTimeout(() => scoreEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+}
+
+
+// ═══════════════════════════════════
+// DIVERGENCE TAB
+// ═══════════════════════════════════
+let divDir = 'long';
+
+function setDivDir(dir) {
+  divDir = dir;
+  document.getElementById('div-pill-long').className = 'dir-pill' + (dir === 'long' ? ' long-active' : '');
+  document.getElementById('div-pill-short').className = 'dir-pill' + (dir === 'short' ? ' short-active' : '');
+  document.getElementById('div-gen-btn').style.background = dir === 'short' ? 'var(--sell)' : '#a78bfa';
+  document.getElementById('div-gen-btn').style.color = dir === 'short' ? '#fff' : '#000';
+  populateProblemPairs();
+  document.getElementById('div-results').innerHTML = '';
+}
+
+function populateProblemPairs() {
+  const pair = document.getElementById('div-pair').value;
+  const dir = divDir === 'long' ? 'long' : 'short';
+  const data = DIVERGENCE[pair] ? DIVERGENCE[pair][dir] : [];
+  const sel = document.getElementById('div-problem-pair');
+  sel.innerHTML = '';
+  if (!data || data.length === 0) {
+    sel.innerHTML = '<option value="">No data for this pair</option>';
+    return;
+  }
+  data.forEach((item, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = item.pair + ' — not ' + item.expected;
+    sel.appendChild(opt);
+  });
+}
+
+document.getElementById('div-pair').addEventListener('change', () => {
+  populateProblemPairs();
+  document.getElementById('div-results').innerHTML = '';
+});
+
+populateProblemPairs();
+
+function generateDivergence() {
+  const pair = document.getElementById('div-pair').value;
+  const dir = divDir === 'long' ? 'long' : 'short';
+  const idx = document.getElementById('div-problem-pair').value;
+  const data = DIVERGENCE[pair] ? DIVERGENCE[pair][dir] : null;
+  const resultsEl = document.getElementById('div-results');
+  resultsEl.innerHTML = '';
+
+  if (!data || data.length === 0 || idx === '') {
+    resultsEl.innerHTML = '<div class="no-div">No divergence data for this selection yet.</div>';
+    return;
+  }
+
+  const item = data[parseInt(idx)];
+  if (!item) return;
+
+  const isLong = divDir === 'long';
+
+  // Trade context header
+  const hdr = document.createElement('div');
+  hdr.style.cssText = 'margin: 0 16px 12px; padding: 12px 14px; border-radius: 12px; border-left: 4px solid #a78bfa; background: rgba(139,92,246,0.08);';
+  hdr.innerHTML = `
+    <div style="font-family:'Space Mono',monospace; font-size:15px; font-weight:700; color:var(--text); margin-bottom:4px;">
+      ${pair} ${isLong ? 'LONG ▲' : 'SHORT ▼'} — ${item.pair} not ${item.expected}
+    </div>
+    <div style="font-size:12px; color:var(--muted);">You expected ${item.pair} to be ${item.expected} but it is not.</div>`;
+  resultsEl.appendChild(hdr);
+
+  // Main card
+  const card = document.createElement('div');
+  card.className = 'div-card';
+  card.style.margin = '0 16px 10px';
+  card.style.animationDelay = '0.05s';
+
+  let tradesHtml = item.betterTrades.map(t => `<div class="div-trade-item">${t}</div>`).join('');
+  let avoidHtml = `<div class="div-avoid-item">${item.avoid}</div>`;
+
+  card.innerHTML = `
+    <div class="div-card-title">What the market is telling you</div>
+    <div class="div-expected">Expected: <span>${item.pair} ${item.expected}</span> — but it's not</div>
+    <div class="div-meaning">${item.ifNot}</div>
+    <div class="div-meaning" style="font-size:13px; color:var(--muted); font-weight:400;">${item.meaning}</div>
+    <div class="div-section-label">Better trades to consider</div>
+    ${tradesHtml}
+    <div class="div-section-label" style="margin-top:12px;">What to avoid</div>
+    ${avoidHtml}`;
+
+  resultsEl.appendChild(card);
+
+  // Show all other non-confirming possibilities as smaller cards
+  const otherItems = data.filter((_, i) => i !== parseInt(idx));
+  if (otherItems.length > 0) {
+    const otherLabel = document.createElement('div');
+    otherLabel.style.cssText = 'margin: 16px 16px 8px; font-size:10px; letter-spacing:3px; color:var(--muted); font-family:"Space Mono",monospace; text-transform:uppercase;';
+    otherLabel.textContent = 'Other pairs to check';
+    resultsEl.appendChild(otherLabel);
+
+    otherItems.forEach((other, i) => {
+      const mini = document.createElement('div');
+      mini.style.cssText = 'margin: 0 16px 8px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 14px; animation: slideUp 0.3s ease both;';
+      mini.style.animationDelay = (i * 0.06 + 0.1) + 's';
+      mini.innerHTML = `
+        <div style="font-family:'Space Mono',monospace; font-size:12px; color:#a78bfa; margin-bottom:4px;">${other.pair} — if also not ${other.expected}</div>
+        <div style="font-size:13px; color:var(--muted);">${other.ifNot}</div>`;
+      resultsEl.appendChild(mini);
+    });
+  }
+
+  setTimeout(() => hdr.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
 }
 
 // ═══════════════════════════════════
