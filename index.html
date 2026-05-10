@@ -235,7 +235,6 @@
   .feedback-pair-state { font-size:10px; color:var(--muted); flex:1; }
   .fb-btns { display:flex; gap:5px; }
   .fb-btn { padding:5px 10px; border-radius:7px; border:1px solid var(--border); background:transparent; font-family:"Space Mono",monospace; font-size:10px; font-weight:700; cursor:pointer; transition:all 0.15s; color:var(--muted); }
-  .fb-rate-btn { padding:5px 10px; border-radius:7px; border:1px solid var(--border); background:transparent; font-family:"Space Mono",monospace; font-size:10px; font-weight:700; cursor:pointer; transition:all 0.15s; color:var(--muted); }
   .fb-btn.win-active  { background:rgba(0,200,150,0.15); color:var(--buy); border-color:rgba(0,200,150,0.4); }
   .fb-btn.loss-active { background:rgba(255,77,109,0.15); color:var(--sell); border-color:rgba(255,77,109,0.4); }
   .fb-btn.skip-active { background:rgba(107,122,153,0.12); color:var(--muted); border-color:var(--border); }
@@ -262,6 +261,11 @@
     <span class="logo">FX Correlation</span>
     <h1>Your Pair<br>Playbook</h1>
     <p>Tap a pair to see what to do<br>on all the others</p>
+  </div>
+  <div id="bias-legend-wrap"></div>
+  <div id="conflict-banner">
+    <div class="conflict-title">⚠️ Conflict Detected</div>
+    <div id="conflict-list"></div>
   </div>
   <div id="bias-legend-wrap"></div>
   <div id="conflict-banner">
@@ -1270,15 +1274,11 @@ function historyKey(pair, dir) { return pair + '_' + dir; }
 function historyRecord(pair, dir, itemStates, confirmedCount, againstPairs) {
   const h = historyLoad();
   const k = historyKey(pair, dir);
-  // Preserve any existing feedback flags
-  const existing = h[k] || {};
   h[k] = {
     pair, dir, itemStates, confirmedCount, againstPairs,
-    tf: (typeof confirmTF !== 'undefined') ? confirmTF : (existing.tf || null),
+    tf: confirmTF,
     savedAt: new Date().toISOString(),
-    pct: (typeof CF !== 'undefined' && CF.total > 0) ? Math.round((confirmedCount / CF.total) * 100) : 0,
-    hasFeedback: existing.hasFeedback || false,
-    lastFeedback: existing.lastFeedback || null,
+    pct: CF.total > 0 ? Math.round((confirmedCount / CF.total) * 100) : 0
   };
   historySave(h);
   renderHistoryList();
@@ -1333,7 +1333,8 @@ function renderHistoryList() {
       '</div>' +
       '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">' +
         '<div style="font-size:9px;color:var(--muted);">' + dateStr + '</div>' +
-        '<button class="fb-rate-btn" data-hkey="' + e.pair + '_' + e.dir + '" style="font-size:9px;padding:3px 8px;" >' +
+        '<button class="fb-btn" style="font-size:9px;padding:3px 8px;" ' +
+          'onclick="event.stopPropagation();openFeedbackPanelById(\"' + e.pair + '_' + e.dir + '\")">' +
           (hasFb ? '📊 UPDATE' : '📊 RATE') +
         '</button>' +
       '</div>';
@@ -1344,17 +1345,7 @@ function renderHistoryList() {
 
     wrap.appendChild(row);
     container.appendChild(wrap);
-
-    // Wire up the RATE button after it's in the DOM — avoids inline onclick quoting and
-    // correctly stops the event from bubbling to the row's restoreHistory handler.
-    const rateBtn = row.querySelector('.fb-rate-btn');
-    if (rateBtn) {
-      rateBtn.addEventListener('click', function(ev) {
-        ev.stopPropagation();
-        openFeedbackPanelById(rateBtn.getAttribute('data-hkey'));
-      });
-    }
-  }); // end entries.forEach
+  });
 
   // Clear all button
   const clearBtn = document.createElement('div');
@@ -1364,9 +1355,8 @@ function renderHistoryList() {
 }
 
 function historyClearAll() {
-  if (!window.confirm('Clear all saved pair history and ratings?')) return;
-  try { localStorage.removeItem(HISTORY_KEY); } catch(e) {}
-  try { localStorage.removeItem(FEEDBACK_KEY); } catch(e) {}
+  if (!confirm('Clear all saved pair history?')) return;
+  localStorage.removeItem(HISTORY_KEY);
   renderHistoryList();
   computeAndRenderBias();
 }
@@ -2149,7 +2139,24 @@ function renderBiasLegend(votes) {
     '</div>';
 }
 
-// TF saving is handled directly in historyRecord above.
+// ═══════════════════════════════════════════════════════════
+// SAVE TF IN HISTORY
+// ═══════════════════════════════════════════════════════════
+// Override historyRecord to also store the current TF
+const _origHistoryRecord = historyRecord;
+function historyRecord(pair, dir, itemStates, confirmedCount, againstPairs) {
+  const h = historyLoad();
+  const k = pair + '_' + dir;
+  h[k] = {
+    pair, dir, itemStates, confirmedCount, againstPairs,
+    tf: confirmTF,
+    savedAt: new Date().toISOString(),
+    pct: CF.total > 0 ? Math.round((confirmedCount / CF.total) * 100) : 0
+  };
+  historySave(h);
+  renderHistoryList();
+  computeAndRenderBias();
+}
 
 // ─── Init on page load ───────────────────────────────────────
 renderHistoryList();
@@ -2157,3 +2164,4 @@ computeAndRenderBias();
 </script>
 </body>
 </html>
+
