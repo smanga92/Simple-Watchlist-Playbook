@@ -313,6 +313,36 @@
         After enough rated trades, pairs that consistently confirm correctly get promoted in the checklist.
         Pairs that frequently range get flagged. The checklist reorders itself — most reliable pairs first.
       </div>
+
+      <div class="modal-section-label" style="margin-top:20px;">Correlation Data</div>
+      <div id="corr-status-banner" style="display:none;padding:10px 12px;border-radius:10px;font-size:11px;font-family:'Space Mono',monospace;margin-bottom:10px;"></div>
+
+      <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;">
+        <label style="font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;letter-spacing:1px;white-space:nowrap;">TIMEFRAME</label>
+        <select id="corr-tf-select" onchange="onTfChange()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Space Mono',monospace;font-size:12px;font-weight:700;padding:8px 10px;appearance:none;">
+          <option value="5min">5 Minutes</option>
+          <option value="15min">15 Minutes</option>
+          <option value="1h">1 Hour</option>
+          <option value="4h">4 Hours</option>
+          <option value="day">Daily</option>
+        </select>
+      </div>
+
+      <label style="display:block;cursor:pointer;">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--surface2);border:1px dashed var(--border);border-radius:10px;transition:border-color 0.15s;"
+          onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <span style="font-size:22px;">📂</span>
+          <div>
+            <div style="font-size:12px;font-family:'Space Mono',monospace;font-weight:700;color:var(--text);">Upload Mataf CSV</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px;">mataf.net → Correlation → Download CSV</div>
+          </div>
+        </div>
+        <input type="file" accept=".csv,.txt" style="display:none;" onchange="handleCsvUpload(event)"/>
+      </label>
+
+      <div style="margin-top:10px;padding:10px 12px;background:var(--surface2);border-radius:8px;font-size:11px;color:var(--muted);line-height:1.7;">
+        Once uploaded, all pairs — including any you add later — will use real measured correlations instead of inferred ones. Change the timeframe above to match your trading style and the app will recalculate everything instantly.
+      </div>
     </div>
   </div>
 </div>
@@ -1176,6 +1206,67 @@ function syncConfirmDropdown() {
 function openSettings() {
   renderSettingsModal();
   document.getElementById('settings-modal').classList.remove('hidden');
+  // Set TF selector to saved value
+  const tfSel = document.getElementById('corr-tf-select');
+  if (tfSel) tfSel.value = corrTfLoad();
+  // Show matrix status
+  renderCorrStatus();
+}
+
+function renderCorrStatus() {
+  const banner = document.getElementById('corr-status-banner');
+  if (!banner) return;
+  const matrix = corrMatrixLoad();
+  if (!matrix) {
+    banner.style.display = 'none';
+    return;
+  }
+  const pairCount = Object.keys(matrix).length;
+  const tf = corrTfLoad();
+  banner.style.display = 'block';
+  banner.style.background = 'rgba(0,200,150,0.08)';
+  banner.style.border = '1px solid rgba(0,200,150,0.25)';
+  banner.style.color = 'var(--strong)';
+  banner.innerHTML = '✓ Correlation matrix loaded — ' + pairCount + ' pairs · active timeframe: <strong>' + tf.toUpperCase() + '</strong>';
+}
+
+function handleCsvUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result;
+    const matrix = parseCorrelationCSV(text);
+    if (!matrix || Object.keys(matrix).length === 0) {
+      alert('Could not parse the CSV. Make sure it is a Mataf.net correlation table download.');
+      return;
+    }
+    corrMatrixSave(matrix);
+    // Re-derive all non-hardcoded pairs with the new data
+    rederiveAllPairs();
+    renderSettingsModal();
+    renderHomeGrid();
+    syncConfirmDropdown();
+    computeAndRenderBias();
+    const pairCount = Object.keys(matrix).length;
+    renderCorrStatus();
+    alert('✓ Loaded ' + pairCount + ' pairs from ' + file.name + '.\n\nAll derived pairs have been updated using ' + corrTfLoad().toUpperCase() + ' correlation data.');
+  };
+  reader.readAsText(file);
+  // Reset input so the same file can be re-uploaded
+  event.target.value = '';
+}
+
+function onTfChange() {
+  const sel = document.getElementById('corr-tf-select');
+  if (!sel) return;
+  const tf = sel.value;
+  corrTfSave(tf);
+  if (!corrMatrixLoad()) return; // no matrix yet — nothing to recalculate
+  rederiveAllPairs();
+  renderSettingsModal();
+  renderCorrStatus();
+  alert('Timeframe changed to ' + tf.toUpperCase() + '. All derived pairs recalculated.');
 }
 function closeSettings(e) {
   if (e && e.target !== document.getElementById('settings-modal')) return;
@@ -1265,9 +1356,20 @@ function addPairFromModal() {
 
   // Derive and save correlations if not a hardcoded pair
   if (!PAIRS[pair] && !derivedPairsLoad()[pair]) {
-    const derived = derivePairCorrelations(pair);
+    const tf = corrTfLoad();
+    const matrix = corrMatrixLoad();
+    let derived = null;
+
+    // Try CSV matrix first (most accurate)
+    if (matrix) derived = derivePairFromCSV(pair, tf);
+
+    // Fallback to logical inference
     if (!derived || (!derived.buy.actions.length && !derived.sell.actions.length)) {
-      alert('Could not derive any correlations for ' + pair + '. Not enough overlapping currency data in your watchlist yet.\n\nTry adding more pairs first, or check that the symbol is correct (e.g. EURGBP).');
+      derived = derivePairCorrelationsLogical(pair);
+    }
+
+    if (!derived || (!derived.buy.actions.length && !derived.sell.actions.length)) {
+      alert('Could not derive correlations for ' + pair + '.\n\nIf you have uploaded a correlation CSV, check that ' + pair + ' appears in it.\nOtherwise try adding more watchlist pairs first.');
       return;
     }
     saveDerivedPair(pair, derived);
@@ -1283,55 +1385,201 @@ function addPairFromModal() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// CORRELATION DERIVATION ENGINE
+// CORRELATION MATRIX ENGINE
 //
-// For any pair not in PAIRS{}, the engine:
-// 1. Identifies base + counter currency (e.g. EURGBP → EUR, GBP)
-// 2. Scans every existing PAIRS entry (hardcoded + previously
-//    derived) for rules that reference either currency
-// 3. Infers what the new pair should do when those rules fire,
-//    using a vote-weighted approach (strong rules cast 3 votes,
-//    moderate 2, weak 1 — ties default to neutral)
-// 4. Saves the result to localStorage under DERIVED_PAIRS_KEY
-//    so it persists and is available to future derivations
-//
-// Strength of all derived actions starts at 'moderate'.
-// The feedback + adaptive engine then promotes/demotes from there.
+// Reads a Mataf-format CSV uploaded by the user.
+// Stores the full matrix in localStorage keyed by
+// CORR_MATRIX_KEY. When the user adds a new pair, the engine
+// reads the real measured coefficients for the chosen
+// timeframe and maps them to action rules:
+//   |coeff| ≥ 70  → strong
+//   |coeff| 45-69 → moderate
+//   |coeff| 30-44 → weak
+//   |coeff| < 30  → omit (too noisy)
+// Positive coeff → same direction, negative → opposite.
+// Falls back to logical inference if no CSV data exists.
 // ═══════════════════════════════════════════════════════════
 const DERIVED_PAIRS_KEY = 'fx_derived_pairs_v1';
+const CORR_MATRIX_KEY   = 'fx_corr_matrix_v1';
+const CORR_TF_KEY       = 'fx_corr_tf_v1';
 
 // Known currencies and their roles — used for context generation
 const CURRENCY_META = {
-  EUR: { name:'Euro',           role:'major' },
-  GBP: { name:'British Pound', role:'major' },
-  USD: { name:'US Dollar',     role:'reserve' },
-  JPY: { name:'Japanese Yen',  role:'safe-haven' },
-  CHF: { name:'Swiss Franc',   role:'safe-haven' },
-  AUD: { name:'Aussie Dollar', role:'risk' },
-  NZD: { name:'New Zealand Dollar', role:'risk' },
-  CAD: { name:'Canadian Dollar',    role:'commodity' },
-  GOLD:{ name:'Gold',          role:'safe-haven' },
-  BTC: { name:'Bitcoin',       role:'risk' },
+  EUR:  { name:'Euro',                role:'major' },
+  GBP:  { name:'British Pound',       role:'major' },
+  USD:  { name:'US Dollar',           role:'reserve' },
+  JPY:  { name:'Japanese Yen',        role:'safe-haven' },
+  CHF:  { name:'Swiss Franc',         role:'safe-haven' },
+  AUD:  { name:'Aussie Dollar',       role:'risk' },
+  NZD:  { name:'New Zealand Dollar',  role:'risk' },
+  CAD:  { name:'Canadian Dollar',     role:'commodity' },
+  GOLD: { name:'Gold',                role:'safe-haven' },
+  BTC:  { name:'Bitcoin',             role:'risk' },
 };
+
+// Normalise CSV pair names ↔ app pair names
+const CSV_TO_APP = {
+  XAUUSD: 'GOLD',
+  US30:   'US30Cash',
+};
+const APP_TO_CSV = {
+  GOLD:     'XAUUSD',
+  US30Cash: 'US30',
+};
+function toAppPair(csvPair)  { return CSV_TO_APP[csvPair]  || csvPair; }
+function toCsvPair(appPair)  { return APP_TO_CSV[appPair]  || appPair; }
+
+// Timeframe column indices in the CSV (after pair1, pair2)
+const TF_COLS = { '5min':0, '15min':1, '1h':2, '4h':3, 'day':4 };
+
+function corrMatrixLoad() {
+  try { return JSON.parse(localStorage.getItem(CORR_MATRIX_KEY)) || null; } catch(e) { return null; }
+}
+function corrMatrixSave(matrix) {
+  try { localStorage.setItem(CORR_MATRIX_KEY, JSON.stringify(matrix)); } catch(e) {}
+}
+function corrTfLoad()       { return localStorage.getItem(CORR_TF_KEY) || 'day'; }
+function corrTfSave(tf)     { localStorage.setItem(CORR_TF_KEY, tf); }
+
+// Parse the Mataf CSV text into a nested lookup:
+//   matrix[appPair1][appPair2] = { '5min': 94.5, '1h': 97.8, ... }
+function parseCorrelationCSV(text) {
+  const lines = text.trim().split('\n').map(l => l.trim()).filter(l => l);
+  // Find the header row (contains 'pair1,pair2')
+  let dataStart = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].toLowerCase().startsWith('pair1')) { dataStart = i + 1; break; }
+  }
+  if (dataStart < 0) return null;
+
+  const matrix = {};
+  const TF_KEYS = ['5min','15min','1h','4h','day']; // week col ignored
+
+  for (let i = dataStart; i < lines.length; i++) {
+    const cols = lines[i].split(',');
+    if (cols.length < 7) continue;
+    const p1 = toAppPair(cols[0].trim().toUpperCase());
+    const p2 = toAppPair(cols[1].trim().toUpperCase());
+    if (p1 === p2) continue; // skip self-correlation rows
+    const vals = {};
+    TF_KEYS.forEach((tf, idx) => {
+      const v = parseFloat(cols[idx + 2]);
+      if (!isNaN(v)) vals[tf] = v;
+    });
+    if (!matrix[p1]) matrix[p1] = {};
+    matrix[p1][p2] = vals;
+  }
+  return matrix;
+}
+
+// Get the correlation coefficient for two pairs at a given timeframe
+function getCorr(matrix, pair1, pair2, tf) {
+  if (!matrix) return null;
+  const row = matrix[pair1] && matrix[pair1][pair2];
+  if (row && row[tf] !== undefined) return row[tf];
+  // Try reverse
+  const rev = matrix[pair2] && matrix[pair2][pair1];
+  if (rev && rev[tf] !== undefined) return rev[tf];
+  return null;
+}
+
+// Map a coefficient to strength tier
+function coeffToStrength(absCoeff) {
+  if (absCoeff >= 70) return 'strong';
+  if (absCoeff >= 45) return 'moderate';
+  if (absCoeff >= 30) return 'weak';
+  return null; // too noisy — omit
+}
+
+// Build reason string from CSV data
+function buildCsvReason(newPair, confirmPair, coeff, tf, dir) {
+  const abs = Math.abs(coeff).toFixed(1);
+  const same = coeff > 0;
+  const dirWord = dir === 'buy' ? 'rises' : 'falls';
+  const confirmDir = (same && dir === 'buy') || (!same && dir === 'sell') ? 'rises' : 'falls';
+  return confirmPair + ' ' + confirmDir + ' when ' + newPair + ' ' + dirWord
+    + ' (' + tf + ' correlation: ' + (coeff > 0 ? '+' : '') + coeff.toFixed(1) + '). Source: Mataf.net';
+}
+
+// Main CSV-powered derivation — returns pair data in the same shape as PAIRS entries
+function derivePairFromCSV(newPair, tf) {
+  const matrix = corrMatrixLoad();
+  if (!matrix) return null;
+  if (!matrix[newPair]) return null; // pair not in CSV
+
+  const wl = watchlistLoad();
+  const [base, counter] = extractCurrencies(newPair);
+  const baseMeta    = CURRENCY_META[base]    || { name: base };
+  const counterMeta = CURRENCY_META[counter] || { name: counter };
+
+  const buildActions = (dir) => {
+    // dir = 'buy' means newPair is rising (base strong, counter weak)
+    // For confirming pairs: positive coeff → same direction as newPair
+    //   if dir=buy and coeff positive → confirmPair should also be rising → action='buy'
+    //   if dir=buy and coeff negative → confirmPair should be falling  → action='sell'
+    // For dir=sell it's the mirror
+    const actions = [];
+
+    // Check against every pair in the matrix row for newPair
+    const row = matrix[newPair] || {};
+    Object.entries(row).forEach(([confirmPair, tfVals]) => {
+      if (confirmPair === newPair) return;
+      // Only include pairs on the watchlist (or hardcoded)
+      if (!wl.includes(confirmPair) && !PAIRS[confirmPair]) return;
+      const coeff = tfVals[tf];
+      if (coeff === undefined || coeff === null) return;
+      const abs = Math.abs(coeff);
+      const strength = coeffToStrength(abs);
+      if (!strength) return; // too noisy
+
+      // Direction: positive coeff → confirmPair moves same direction as newPair
+      // If dir='buy' (newPair rising): positive → confirmPair buy, negative → sell
+      // If dir='sell' (newPair falling): positive → confirmPair sell, negative → buy
+      let action;
+      if (dir === 'buy')  action = coeff > 0 ? 'buy' : 'sell';
+      else                action = coeff > 0 ? 'sell' : 'buy';
+
+      const reason = buildCsvReason(newPair, confirmPair, coeff, tf, dir);
+      actions.push({ pair: confirmPair, action, strength, reason, derived: true, _coeff: coeff });
+    });
+
+    // Sort: strong first, then by |coeff| descending
+    actions.sort((a, b) => {
+      const order = { strong:0, moderate:1, weak:2 };
+      if (order[a.strength] !== order[b.strength]) return order[a.strength] - order[b.strength];
+      return Math.abs(b._coeff) - Math.abs(a._coeff);
+    });
+
+    return {
+      context: dir === 'buy'
+        ? '<strong>' + baseMeta.name + ' strong, ' + counterMeta.name + ' weak</strong> — from ' + tf + ' correlation data (Mataf.net).'
+        : '<strong>' + baseMeta.name + ' weak, ' + counterMeta.name + ' strong</strong> — from ' + tf + ' correlation data (Mataf.net).',
+      actions
+    };
+  };
+
+  return {
+    desc: base + ' vs ' + counter + ' — ' + tf + ' correlation data from Mataf.net',
+    buy:  buildActions('buy'),
+    sell: buildActions('sell'),
+    _derived: true,
+    _csvBased: true,
+    _tf: tf,
+    _derivedAt: new Date().toISOString()
+  };
+}
 
 // Extract [base, counter] from a pair symbol
 function extractCurrencies(pair) {
-  // Handle special symbols first
   if (pair === 'GOLD' || pair === 'XAUUSD') return ['GOLD', 'USD'];
   if (pair === 'US30Cash' || pair === 'US30') return ['US30', 'USD'];
   if (pair === 'BTCUSD') return ['BTC', 'USD'];
-
-  // Standard 6-char forex pairs
   if (pair.length === 6) return [pair.slice(0, 3), pair.slice(3)];
-
-  // Try matching known currencies at the start
-  const known = ['EUR','GBP','USD','JPY','CHF','AUD','NZD','CAD','NZD'];
+  const known = ['EUR','GBP','USD','JPY','CHF','AUD','NZD','CAD'];
   for (const c of known) {
-    if (pair.startsWith(c) && pair.length > c.length) {
-      return [c, pair.slice(c.length)];
-    }
+    if (pair.startsWith(c) && pair.length > c.length) return [c, pair.slice(c.length)];
   }
-  return [pair.slice(0, 3), pair.slice(3)]; // fallback
+  return [pair.slice(0, 3), pair.slice(3)];
 }
 
 function derivedPairsLoad() {
@@ -1346,26 +1594,56 @@ function saveDerivedPair(pair, derived) {
   derivedPairsSave(store);
 }
 
-// The main derivation function
-function derivePairCorrelations(newPair) {
+// Re-derive ALL non-hardcoded pairs from the current matrix + TF
+// Called after a new CSV is uploaded or TF changes
+function rederiveAllPairs() {
+  const wl = watchlistLoad();
+  const tf = corrTfLoad();
+  const matrix = corrMatrixLoad();
+  const store = {};
+
+  wl.forEach(pair => {
+    if (PAIRS[pair]) return; // hardcoded — skip
+    // Try CSV first
+    const csvResult = matrix ? derivePairFromCSV(pair, tf) : null;
+    if (csvResult && (csvResult.buy.actions.length || csvResult.sell.actions.length)) {
+      store[pair] = csvResult;
+      // Also register in ALL_PAIRS_META if missing
+      if (!ALL_PAIRS_META[pair]) {
+        const [b, c] = extractCurrencies(pair);
+        ALL_PAIRS_META[pair] = {
+          label: pair, type: 'forex',
+          css: b === 'JPY' || c === 'JPY' ? 'jpy' : '',
+          tag: b + ' / ' + c,
+          section: 'Majors & Crosses'
+        };
+      }
+    } else {
+      // Fallback: logical inference
+      const inferred = derivePairCorrelationsLogical(pair);
+      if (inferred) store[pair] = inferred;
+    }
+  });
+
+  derivedPairsSave(store);
+}
+
+// ── LOGICAL INFERENCE FALLBACK (original engine, renamed) ──────────────────
+function derivePairCorrelationsLogical(newPair) {
   const [base, counter] = extractCurrencies(newPair);
   if (!base || !counter || base === counter) return null;
 
-  // Merge hardcoded PAIRS with previously derived pairs for a richer scan
   const derivedStore = derivedPairsLoad();
   const allKnownPairs = { ...PAIRS };
   Object.entries(derivedStore).forEach(([p, data]) => {
     if (!allKnownPairs[p]) allKnownPairs[p] = data;
   });
 
-  // For each direction (buy = base strong / counter weak, sell = opposite)
   const result = {};
 
   ['buy', 'sell'].forEach(dir => {
-    // When buying newPair: base is STRONG, counter is WEAK
-    // When selling newPair: base is WEAK, counter is STRONG
-    const baseStrong  = dir === 'buy';
-    const votes = {}; // existingPair → { buy: score, sell: score }
+    const baseStrong = dir === 'buy';
+    const votes = {};
 
     Object.entries(allKnownPairs).forEach(([srcPair, srcData]) => {
       if (srcPair === newPair) return;
@@ -1373,37 +1651,23 @@ function derivePairCorrelations(newPair) {
 
       ['buy', 'sell'].forEach(srcDir => {
         const srcActions = srcData[srcDir] && srcData[srcDir].actions ? srcData[srcDir].actions : [];
-        // Does this source rule tell us anything about base or counter?
-        // srcDir = 'buy' → srcBase strong, srcCounter weak
         const srcBaseStrong = srcDir === 'buy';
 
         srcActions.forEach(action => {
-          if (action.pair === newPair) return; // skip self-references
+          if (action.pair === newPair) return;
           const w = action.strength === 'strong' ? 3 : action.strength === 'moderate' ? 2 : 1;
-          if (!votes[action.pair]) votes[action.pair] = { buy: 0, sell: 0, reasons: [] };
+          if (!votes[action.pair]) votes[action.pair] = { buy: 0, sell: 0 };
 
-          // BASE currency logic
           if (srcBase === base || srcCounter === base) {
-            // Figure out direction implied for newPair's base currency
             let impliedBaseStrong = (srcBase === base) ? srcBaseStrong : !srcBaseStrong;
             if (impliedBaseStrong === baseStrong) {
-              // This source event implies same base direction as our trade
-              // So this confirming pair should move the same way as in this source rule
               if (action.action === 'buy') votes[action.pair].buy += w;
               else if (action.action === 'sell') votes[action.pair].sell += w;
-              votes[action.pair].reasons.push(
-                action.pair + ': ' + (action.action === 'buy' ? '↑' : '↓') + ' [from ' + srcPair + ' ' + srcDir + ']'
-              );
             }
           }
-
-          // COUNTER currency logic (same logic, opposite direction for the new pair)
           if (srcBase === counter || srcCounter === counter) {
             let impliedCounterStrong = (srcBase === counter) ? srcBaseStrong : !srcBaseStrong;
-            // Counter strong = new pair FALLS → so counter strong = sell newPair scenario
-            // If we're in buy scenario, counter is WEAK — so impliedCounterStrong should be false
             if (impliedCounterStrong !== baseStrong) {
-              // Counter weak matches our direction — confirming pairs align
               if (action.action === 'buy') votes[action.pair].buy += w;
               else if (action.action === 'sell') votes[action.pair].sell += w;
             }
@@ -1412,82 +1676,55 @@ function derivePairCorrelations(newPair) {
       });
     });
 
-    // Convert votes to actions — only include pairs with a clear majority
     const actions = [];
     const wl = watchlistLoad();
-
     Object.entries(votes).forEach(([confirmPair, v]) => {
       if (confirmPair === newPair) return;
-      // Only include pairs in the user's watchlist or known pairs
       const isKnown = !!allKnownPairs[confirmPair] || wl.includes(confirmPair);
       if (!isKnown) return;
       const total = v.buy + v.sell;
       if (total === 0) return;
       const ratio = Math.max(v.buy, v.sell) / total;
-      if (ratio < 0.55) return; // less than 55% agreement → neutral, skip
+      if (ratio < 0.55) return;
       const action = v.buy > v.sell ? 'buy' : 'sell';
-      const strength = ratio >= 0.80 ? 'moderate' : 'weak'; // derived = moderate at best, never strong
+      const strength = ratio >= 0.80 ? 'moderate' : 'weak';
       const [cb, cc] = extractCurrencies(confirmPair);
-      const [nb, nc] = [base, counter];
-      const reason = buildDerivedReason(newPair, base, counter, confirmPair, cb, cc, action, dir);
+      const baseMeta    = CURRENCY_META[base]    || { name: base };
+      const counterMeta = CURRENCY_META[counter] || { name: counter };
+      let reason = 'Derived from shared currency flow across your watchlist. (inferred)';
+      if (cb === base || cc === base) {
+        reason = baseMeta.name + (dir==='buy' ? ' is strong' : ' is weak') + ' — inferred from watchlist correlations.';
+      } else if (cb === counter || cc === counter) {
+        reason = counterMeta.name + (dir==='buy' ? ' is weak' : ' is strong') + ' — inferred from watchlist correlations.';
+      }
       actions.push({ pair: confirmPair, action, strength, reason, derived: true });
     });
 
-    // Sort: moderate first, then by vote ratio descending
     actions.sort((a, b) => {
       if (a.strength !== b.strength) return a.strength === 'moderate' ? -1 : 1;
-      const va = votes[a.pair], vb = votes[b.pair];
-      const ra = Math.max(va.buy, va.sell) / (va.buy + va.sell);
-      const rb = Math.max(vb.buy, vb.sell) / (vb.buy + vb.sell);
-      return rb - ra;
+      return 0;
     });
 
-    const baseMeta   = CURRENCY_META[base]   || { name: base,    role: 'currency' };
-    const counterMeta = CURRENCY_META[counter] || { name: counter, role: 'currency' };
-
+    const baseMeta    = CURRENCY_META[base]    || { name: base };
+    const counterMeta = CURRENCY_META[counter] || { name: counter };
     result[dir] = {
       context: dir === 'buy'
-        ? '<strong>' + baseMeta.name + ' strong, ' + counterMeta.name + ' weak</strong> — derived correlation rules apply.'
-        : '<strong>' + baseMeta.name + ' weak, ' + counterMeta.name + ' strong</strong> — derived correlation rules apply.',
-      actions,
-      desc: base + ' vs ' + counter + ' — auto-derived from existing correlations',
-      _derived: true,
-      _derivedAt: new Date().toISOString()
+        ? '<strong>' + baseMeta.name + ' strong, ' + counterMeta.name + ' weak</strong> — inferred from existing correlations.'
+        : '<strong>' + baseMeta.name + ' weak, ' + counterMeta.name + ' strong</strong> — inferred from existing correlations.',
+      actions
     };
   });
 
   return {
-    desc: base + ' vs ' + counter + ' — correlations derived from your watchlist',
-    buy: result.buy,
+    desc: base + ' vs ' + counter + ' — inferred from existing correlations',
+    buy:  result.buy,
     sell: result.sell,
-    _derived: true
+    _derived: true,
+    _csvBased: false
   };
 }
 
-function buildDerivedReason(newPair, base, counter, confirmPair, cb, cc, action, dir) {
-  const baseStrong = dir === 'buy';
-  const baseMeta    = CURRENCY_META[base]    || { name: base };
-  const counterMeta = CURRENCY_META[counter] || { name: counter };
-  const cbMeta      = CURRENCY_META[cb]      || { name: cb };
-  const ccMeta      = CURRENCY_META[cc]      || { name: cc };
-
-  // Figure out which shared currency is the link
-  if (cb === base || cc === base) {
-    const shared = baseMeta.name;
-    return baseStrong
-      ? shared + ' is strong — drives ' + newPair + ' up and ' + confirmPair + ' to ' + action + '. (auto-derived)'
-      : shared + ' is weak — drives ' + newPair + ' down and ' + confirmPair + ' to ' + action + '. (auto-derived)';
-  }
-  if (cb === counter || cc === counter) {
-    const shared = counterMeta.name;
-    return !baseStrong
-      ? shared + ' is strong — drives ' + newPair + ' down and ' + confirmPair + ' to ' + action + '. (auto-derived)'
-      : shared + ' is weak — supports ' + newPair + ' up; ' + confirmPair + ' to ' + action + '. (auto-derived)';
-  }
-  return 'Derived from shared currency flow across your watchlist. (auto-derived)';
-}
-
-// Get the live pair data — merges hardcoded PAIRS with derived pairs from localStorage
+// Get the live pair data — hardcoded > derived (CSV or logical)
 function getPairData(pair) {
   if (PAIRS[pair]) return PAIRS[pair];
   const derived = derivedPairsLoad();
