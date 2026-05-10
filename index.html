@@ -196,6 +196,62 @@
   .div-expected span { color: var(--moderate); font-weight: 500; }
   .no-div { text-align: center; padding: 32px 16px; color: var(--muted); font-size: 14px; line-height: 1.6; }
 
+  /* BIAS INDICATORS */
+  .bias-dot { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; pointer-events: none; }
+  .bias-arrow { font-size: 11px; font-weight: 700; line-height: 1; font-family: "Space Mono", monospace; }
+  .bias-arrow.long  { color: var(--buy); }
+  .bias-arrow.short { color: var(--sell); }
+  .bias-arrow.conflict { color: var(--moderate); }
+  .bias-meta { font-size: 8px; font-family: "Space Mono", monospace; color: var(--muted); letter-spacing: 0.3px; text-align: right; line-height: 1.3; }
+  .bias-tf { font-size: 8px; font-family: "Space Mono", monospace; letter-spacing: 0.3px; line-height: 1.2; text-align: right; }
+  .bias-tf.long  { color: rgba(0,200,150,0.8); }
+  .bias-tf.short { color: rgba(255,77,109,0.8); }
+  .bias-tf.conflict { color: rgba(245,158,11,0.9); }
+
+  /* CONFLICT BANNER */
+  #conflict-banner { display: none; margin: 0 16px 16px; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.35); border-left: 3px solid var(--moderate); border-radius: 12px; padding: 12px 14px; }
+  .conflict-title { font-family: "Space Mono", monospace; font-size: 11px; color: var(--moderate); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .conflict-item { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 4px; padding: 6px 8px; background: rgba(245,158,11,0.05); border-radius: 6px; }
+  .conflict-item strong { color: var(--text); }
+
+  /* TIMEFRAME PILLS */
+  .tf-pills { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
+  .tf-pill { padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-family: "Space Mono", monospace; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+  .tf-pill.tf-active { background: rgba(167,139,250,0.15); color: #a78bfa; border-color: rgba(167,139,250,0.4); }
+
+  /* FEEDBACK SYSTEM */
+  .rel-badge { display:inline-flex; align-items:center; gap:3px; font-size:9px; font-family:"Space Mono",monospace; padding:2px 6px; border-radius:4px; margin-left:6px; letter-spacing:0.3px; vertical-align:middle; }
+  .rel-high   { background:rgba(0,200,150,0.12); color:var(--buy); }
+  .rel-mid    { background:rgba(245,158,11,0.12); color:var(--moderate); }
+  .rel-low    { background:rgba(255,77,109,0.12); color:var(--sell); }
+  .rel-none   { background:rgba(107,122,153,0.08); color:var(--muted); }
+
+  .feedback-panel { margin:0 16px 10px; border:1px solid rgba(167,139,250,0.3); border-radius:14px; background:var(--surface); overflow:hidden; animation:slideUp 0.25s ease both; }
+  .feedback-header { padding:12px 14px 8px; border-bottom:1px solid var(--border); }
+  .feedback-title { font-family:"Space Mono",monospace; font-size:11px; letter-spacing:2px; color:#a78bfa; text-transform:uppercase; margin-bottom:3px; }
+  .feedback-subtitle { font-size:11px; color:var(--muted); line-height:1.4; }
+  .feedback-outcome { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--border); }
+  .feedback-pair-name { font-family:"Space Mono",monospace; font-size:12px; font-weight:700; min-width:68px; }
+  .feedback-pair-state { font-size:10px; color:var(--muted); flex:1; }
+  .fb-btns { display:flex; gap:5px; }
+  .fb-btn { padding:5px 10px; border-radius:7px; border:1px solid var(--border); background:transparent; font-family:"Space Mono",monospace; font-size:10px; font-weight:700; cursor:pointer; transition:all 0.15s; color:var(--muted); }
+  .fb-rate-btn { padding:5px 10px; border-radius:7px; border:1px solid var(--border); background:transparent; font-family:"Space Mono",monospace; font-size:10px; font-weight:700; cursor:pointer; transition:all 0.15s; color:var(--muted); }
+  .fb-btn.win-active  { background:rgba(0,200,150,0.15); color:var(--buy); border-color:rgba(0,200,150,0.4); }
+  .fb-btn.loss-active { background:rgba(255,77,109,0.15); color:var(--sell); border-color:rgba(255,77,109,0.4); }
+  .fb-btn.skip-active { background:rgba(107,122,153,0.12); color:var(--muted); border-color:var(--border); }
+  .feedback-footer { padding:10px 14px; display:flex; gap:8px; }
+  .fb-save-btn { flex:1; padding:10px; border-radius:10px; border:none; background:#a78bfa; color:#000; font-family:"Space Mono",monospace; font-size:11px; font-weight:700; cursor:pointer; letter-spacing:1px; }
+  .fb-cancel-btn { padding:10px 14px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--muted); font-family:"Space Mono",monospace; font-size:11px; cursor:pointer; }
+
+  .result-outcome-tag { display:inline-flex; align-items:center; gap:4px; font-size:9px; font-family:"Space Mono",monospace; padding:2px 7px; border-radius:4px; margin-left:4px; }
+  .outcome-win  { background:rgba(0,200,150,0.12); color:var(--buy); }
+  .outcome-loss { background:rgba(255,77,109,0.12); color:var(--sell); }
+
+  /* BIAS LEGEND */
+  .bias-legend { width: 100%; max-width: 400px; display: flex; gap: 12px; align-items: center; margin: 2px 0 10px; flex-wrap: wrap; }
+  .bias-legend-item { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--muted); font-family: "Space Mono", monospace; }
+  .bl-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
 </style>
 </head>
 <body>
@@ -207,24 +263,29 @@
     <h1>Your Pair<br>Playbook</h1>
     <p>Tap a pair to see what to do<br>on all the others</p>
   </div>
+  <div id="bias-legend-wrap"></div>
+  <div id="conflict-banner">
+    <div class="conflict-title">⚠️ Conflict Detected</div>
+    <div id="conflict-list"></div>
+  </div>
   <div class="section-label">Majors & Crosses</div>
   <div class="pairs-grid">
-    <div class="pair-btn" onclick="showPair('AUDCHF')"><span class="symbol">AUDCHF</span><span class="type-tag">Risk / Safe Haven</span></div>
-    <div class="pair-btn" onclick="showPair('EURAUD')"><span class="symbol">EURAUD</span><span class="type-tag">EUR / Risk</span></div>
-    <div class="pair-btn jpy" onclick="showPair('EURJPY')"><span class="symbol">EURJPY</span><span class="type-tag">EUR / JPY Cross</span></div>
-    <div class="pair-btn" onclick="showPair('EURUSD')"><span class="symbol">EURUSD</span><span class="type-tag">Most Liquid</span></div>
-    <div class="pair-btn" onclick="showPair('GBPCAD')"><span class="symbol">GBPCAD</span><span class="type-tag">GBP / Oil-Linked</span></div>
-    <div class="pair-btn jpy" onclick="showPair('GBPJPY')"><span class="symbol">GBPJPY</span><span class="type-tag">Most Volatile</span></div>
-    <div class="pair-btn" onclick="showPair('GBPUSD')"><span class="symbol">GBPUSD</span><span class="type-tag">Tracks EURUSD</span></div>
-    <div class="pair-btn" onclick="showPair('USDCAD')"><span class="symbol">USDCAD</span><span class="type-tag">USD / Oil-Linked</span></div>
-    <div class="pair-btn" onclick="showPair('USDCHF')"><span class="symbol">USDCHF</span><span class="type-tag">Mirror of EURUSD</span></div>
-    <div class="pair-btn jpy" onclick="showPair('USDJPY')"><span class="symbol">USDJPY</span><span class="type-tag">USD / Risk Gauge</span></div>
+    <div class="pair-btn" onclick="showPair('AUDCHF')" id="btn-AUDCHF"><span class="symbol">AUDCHF</span><span class="type-tag">Risk / Safe Haven</span></div>
+    <div class="pair-btn" onclick="showPair('EURAUD')" id="btn-EURAUD"><span class="symbol">EURAUD</span><span class="type-tag">EUR / Risk</span></div>
+    <div class="pair-btn jpy" onclick="showPair('EURJPY')" id="btn-EURJPY"><span class="symbol">EURJPY</span><span class="type-tag">EUR / JPY Cross</span></div>
+    <div class="pair-btn" onclick="showPair('EURUSD')" id="btn-EURUSD"><span class="symbol">EURUSD</span><span class="type-tag">Most Liquid</span></div>
+    <div class="pair-btn" onclick="showPair('GBPCAD')" id="btn-GBPCAD"><span class="symbol">GBPCAD</span><span class="type-tag">GBP / Oil-Linked</span></div>
+    <div class="pair-btn jpy" onclick="showPair('GBPJPY')" id="btn-GBPJPY"><span class="symbol">GBPJPY</span><span class="type-tag">Most Volatile</span></div>
+    <div class="pair-btn" onclick="showPair('GBPUSD')" id="btn-GBPUSD"><span class="symbol">GBPUSD</span><span class="type-tag">Tracks EURUSD</span></div>
+    <div class="pair-btn" onclick="showPair('USDCAD')" id="btn-USDCAD"><span class="symbol">USDCAD</span><span class="type-tag">USD / Oil-Linked</span></div>
+    <div class="pair-btn" onclick="showPair('USDCHF')" id="btn-USDCHF"><span class="symbol">USDCHF</span><span class="type-tag">Mirror of EURUSD</span></div>
+    <div class="pair-btn jpy" onclick="showPair('USDJPY')" id="btn-USDJPY"><span class="symbol">USDJPY</span><span class="type-tag">USD / Risk Gauge</span></div>
   </div>
   <div class="section-label">Risk Assets & Commodities</div>
   <div class="pairs-grid">
-    <div class="pair-btn crypto" onclick="showPair('BTCUSD')"><span class="symbol">BTCUSD</span><span class="type-tag">Crypto / Risk-On</span></div>
-    <div class="pair-btn commodity" onclick="showPair('GOLD')"><span class="symbol">GOLD</span><span class="type-tag">Safe Haven / USD−</span></div>
-    <div class="pair-btn index" onclick="showPair('US30Cash')"><span class="symbol">US30</span><span class="type-tag">Dow / Risk Gauge</span></div>
+    <div class="pair-btn crypto" onclick="showPair('BTCUSD')" id="btn-BTCUSD"><span class="symbol">BTCUSD</span><span class="type-tag">Crypto / Risk-On</span></div>
+    <div class="pair-btn commodity" onclick="showPair('GOLD')" id="btn-GOLD"><span class="symbol">GOLD</span><span class="type-tag">Safe Haven / USD−</span></div>
+    <div class="pair-btn index" onclick="showPair('US30Cash')" id="btn-US30Cash"><span class="symbol">US30</span><span class="type-tag">Dow / Risk Gauge</span></div>
   </div>
 </div>
 
@@ -279,6 +340,16 @@
       <div class="dir-pills">
         <button class="dir-pill long-active" id="pill-long" onclick="setConfirmDir('long')">▲ LONG</button>
         <button class="dir-pill" id="pill-short" onclick="setConfirmDir('short')">▼ SHORT</button>
+      </div>
+    </div>
+    <div class="setup-row">
+      <label>TF</label>
+      <div class="tf-pills" id="tf-pills">
+        <button class="tf-pill tf-active" data-tf="M15" onclick="setConfirmTF('M15')">M15</button>
+        <button class="tf-pill" data-tf="H1" onclick="setConfirmTF('H1')">H1</button>
+        <button class="tf-pill" data-tf="H4" onclick="setConfirmTF('H4')">H4</button>
+        <button class="tf-pill" data-tf="D1" onclick="setConfirmTF('D1')">D1</button>
+        <button class="tf-pill" data-tf="W1" onclick="setConfirmTF('W1')">W1</button>
       </div>
     </div>
   </div>
@@ -962,6 +1033,227 @@ const DIVERGENCE = {
   }
 };
 
+// ═══════════════════════════════════════════════════════════
+// FEEDBACK ENGINE
+// Tracks per-session outcomes: which confirming pairs actually
+// predicted the trade result correctly. Uses Bayesian smoothing
+// so one bad trade barely moves the needle, but 20+ trades
+// build a statistically meaningful reliability score.
+// Key format: basePair_dir_confirmingPair  e.g. "EURUSD_long_GBPUSD"
+// ═══════════════════════════════════════════════════════════
+const FEEDBACK_KEY = 'fx_feedback_v1';
+
+function feedbackLoad() {
+  try { return JSON.parse(localStorage.getItem(FEEDBACK_KEY)) || {}; } catch(e) { return {}; }
+}
+function feedbackSave(data) {
+  try { localStorage.setItem(FEEDBACK_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+// Bayesian reliability score. Prior = 2 pseudo-observations at 50%.
+// With 0 real trades: 50%. With 1 win, 0 loss: 60%. With 10 wins, 2 loss: 79%.
+// Converges slowly — market noise won't flip it overnight.
+function fbReliability(wins, total) {
+  const ALPHA = 2; // strength of 50% prior
+  return (wins + ALPHA) / (total + ALPHA * 2);
+}
+
+// Returns reliability object for a confirming pair in the context of a base trade
+// { score: 0-1, wins, losses, total, label, cssClass }
+function fbGetReliability(basePair, dir, confirmPair) {
+  const fb = feedbackLoad();
+  const key = basePair + '_' + dir + '_' + confirmPair;
+  const rec = fb[key] || { wins: 0, losses: 0, total: 0 };
+  const score = fbReliability(rec.wins, rec.total);
+  let label, cssClass;
+  if (rec.total === 0) {
+    label = 'No data'; cssClass = 'rel-none';
+  } else if (score >= 0.72) {
+    label = Math.round(score * 100) + '% reliable'; cssClass = 'rel-high';
+  } else if (score >= 0.52) {
+    label = Math.round(score * 100) + '% reliable'; cssClass = 'rel-mid';
+  } else {
+    label = Math.round(score * 100) + '% reliable'; cssClass = 'rel-low';
+  }
+  return { score, wins: rec.wins, losses: rec.losses, total: rec.total, label, cssClass };
+}
+
+// Record feedback for one session — outcomes is { confirmPair: 'win'|'loss'|'skip' }
+function fbRecordSession(basePair, dir, outcomes) {
+  const fb = feedbackLoad();
+  Object.entries(outcomes).forEach(([confirmPair, result]) => {
+    if (result === 'skip') return;
+    const key = basePair + '_' + dir + '_' + confirmPair;
+    if (!fb[key]) fb[key] = { wins: 0, losses: 0, total: 0 };
+    fb[key].total++;
+    if (result === 'win') fb[key].wins++;
+    else if (result === 'loss') fb[key].losses++;
+    fb[key].losses = fb[key].total - fb[key].wins; // keep consistent
+  });
+  feedbackSave(fb);
+}
+
+// ── Feedback UI ──────────────────────────────────────────────────────────────
+// Triggered from the "Add Result" button on a history row.
+// Shows inline panel listing every confirmed pair with WIN / LOSS / SKIP buttons.
+
+let activeFeedbackKey = null; // track which history entry is open
+
+function openFeedbackPanelById(key) {
+  const entry = _historyRegistry[key];
+  if (!entry) { console.error('Entry not found for key:', key); return; }
+  openFeedbackPanel(entry);
+}
+
+function openFeedbackPanel(entry) {
+  // Close any existing panel
+  closeFeedbackPanel();
+
+  const container = document.getElementById('confirm-history-section');
+  if (!container) return;
+
+  // Find the row that was tapped and inject the panel after it
+  const rows = container.querySelectorAll('.history-row');
+  let targetRow = null;
+  rows.forEach(r => { if (r.getAttribute('data-key') === entry.pair + '_' + entry.dir) targetRow = r; });
+  if (!targetRow) return;
+
+  activeFeedbackKey = entry.pair + '_' + entry.dir;
+
+  // Build list of confirmed pairs from this session
+  const confirmedPairs = Object.entries(entry.itemStates || {})
+    .filter(([k, v]) => v === 'confirmed')
+    .map(([k]) => k.replace(/_strong$|_moderate$|_weak$/, ''));
+  // Deduplicate (a pair can appear in strong + moderate)
+  const unique = [...new Set(confirmedPairs)];
+
+  if (unique.length === 0) {
+    alert('No confirmed pairs in this session to rate.');
+    return;
+  }
+
+  const outcomes = {}; // confirmPair → 'win'|'loss'|'skip'
+  unique.forEach(p => { outcomes[p] = 'skip'; });
+
+  const panel = document.createElement('div');
+  panel.className = 'feedback-panel';
+  panel.id = 'feedback-panel';
+
+  const tradeWasLong = entry.dir === 'long';
+  const dirLabel = tradeWasLong ? '▲ LONG' : '▼ SHORT';
+  const dirCol   = tradeWasLong ? 'var(--buy)' : 'var(--sell)';
+
+  panel.innerHTML =
+    '<div class="feedback-header">' +
+      '<div class="feedback-title">📊 Rate This Trade</div>' +
+      '<div class="feedback-subtitle">' +
+        '<strong style="color:var(--text);">' + entry.pair + '</strong> ' +
+        '<span style="color:' + dirCol + ';">' + dirLabel + '</span>' +
+        (entry.tf ? ' · ' + entry.tf : '') +
+        '<br>For each confirming pair, did it correctly predict the outcome?' +
+      '</div>' +
+    '</div>';
+
+  unique.forEach(cp => {
+    const rel = fbGetReliability(entry.pair, entry.dir, cp);
+    const historyNote = rel.total > 0 ? rel.total + ' past trades' : 'first rating';
+
+    const row = document.createElement('div');
+    row.className = 'feedback-outcome';
+
+    // Left: pair name + history note
+    const info = document.createElement('div');
+    const pairName = document.createElement('div');
+    pairName.className = 'feedback-pair-name';
+    pairName.textContent = cp;
+    const pairNote = document.createElement('div');
+    pairNote.className = 'feedback-pair-state';
+    pairNote.textContent = historyNote;
+    info.appendChild(pairName);
+    info.appendChild(pairNote);
+
+    // Right: buttons — built with createElement so no HTML quoting issues
+    const btns = document.createElement('div');
+    btns.className = 'fb-btns';
+
+    [['skip','— SKIP','skip-active'],['win','✓ WIN','win-active'],['loss','✗ LOSS','loss-active']].forEach(([result, label, activeClass]) => {
+      const btn = document.createElement('button');
+      btn.className = 'fb-btn' + (result === 'skip' ? ' skip-active' : '');
+      btn.id = 'fb-' + cp + '-' + result;
+      btn.textContent = label;
+      btn.addEventListener('click', function(ev) {
+        ev.stopPropagation();
+        fbSetOutcome(cp, result);
+      });
+      btns.appendChild(btn);
+    });
+
+    row.appendChild(info);
+    row.appendChild(btns);
+    panel.appendChild(row);
+  });
+
+  // Store outcomes on the panel element for save access
+  panel._outcomes = outcomes;
+  panel._entry    = entry;
+  panel._pairs    = unique;
+
+  const footer = document.createElement('div');
+  footer.className = 'feedback-footer';
+  footer.innerHTML =
+    '<button class="fb-cancel-btn" onclick="closeFeedbackPanel()">CANCEL</button>' +
+    '<button class="fb-save-btn"   onclick="saveFeedbackPanel()">SAVE RESULTS →</button>';
+  panel.appendChild(footer);
+
+  targetRow.insertAdjacentElement('afterend', panel);
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function fbSetOutcome(confirmPair, result) {
+  const panel = document.getElementById('feedback-panel');
+  if (!panel) return;
+  panel._outcomes[confirmPair] = result;
+  ['win','loss','skip'].forEach(r => {
+    const btn = document.getElementById('fb-' + confirmPair + '-' + r);
+    if (!btn) return;
+    btn.className = 'fb-btn' + (r === result ? (r === 'win' ? ' win-active' : r === 'loss' ? ' loss-active' : ' skip-active') : '');
+  });
+}
+
+function saveFeedbackPanel() {
+  const panel = document.getElementById('feedback-panel');
+  if (!panel) return;
+  const { _outcomes, _entry } = panel;
+
+  const hasAnyRating = Object.values(_outcomes).some(v => v !== 'skip');
+  if (!hasAnyRating) {
+    closeFeedbackPanel();
+    return;
+  }
+
+  // Record to feedback store
+  fbRecordSession(_entry.pair, _entry.dir, _outcomes);
+
+  // Mark this history entry as having feedback
+  const h = historyLoad();
+  const k = _entry.pair + '_' + _entry.dir;
+  if (h[k]) {
+    h[k].hasFeedback = true;
+    h[k].lastFeedback = new Date().toISOString();
+  }
+  historySave(h);
+
+  closeFeedbackPanel();
+  renderHistoryList(); // refresh to show feedback indicator
+  computeAndRenderBias(); // reliability now affects bias weights
+}
+
+function closeFeedbackPanel() {
+  const panel = document.getElementById('feedback-panel');
+  if (panel) panel.remove();
+  activeFeedbackKey = null;
+}
+
 // ═══════════════════════════════════
 // CONFIRM HISTORY (localStorage persistence)
 // ═══════════════════════════════════
@@ -978,14 +1270,23 @@ function historyKey(pair, dir) { return pair + '_' + dir; }
 function historyRecord(pair, dir, itemStates, confirmedCount, againstPairs) {
   const h = historyLoad();
   const k = historyKey(pair, dir);
+  // Preserve any existing feedback flags
+  const existing = h[k] || {};
   h[k] = {
     pair, dir, itemStates, confirmedCount, againstPairs,
+    tf: (typeof confirmTF !== 'undefined') ? confirmTF : (existing.tf || null),
     savedAt: new Date().toISOString(),
-    pct: CF.total > 0 ? Math.round((confirmedCount / CF.total) * 100) : 0
+    pct: (typeof CF !== 'undefined' && CF.total > 0) ? Math.round((confirmedCount / CF.total) * 100) : 0,
+    hasFeedback: existing.hasFeedback || false,
+    lastFeedback: existing.lastFeedback || null,
   };
   historySave(h);
   renderHistoryList();
+  computeAndRenderBias();
 }
+
+// Registry so RATE button can look up the full entry without JSON-in-HTML
+const _historyRegistry = {};
 
 function renderHistoryList() {
   const container = document.getElementById('confirm-history-section');
@@ -999,28 +1300,61 @@ function renderHistoryList() {
   container.innerHTML = '';
   entries.forEach(e => {
     const col = e.pct >= 75 ? 'var(--buy)' : e.pct >= 45 ? 'var(--moderate)' : 'var(--sell)';
-    const emoji = e.pct >= 75 ? '✅' : e.pct >= 45 ? '⚠️' : '❌';
     const dirLabel = e.dir === 'long' ? '▲ LONG' : '▼ SHORT';
     const dirCol = e.dir === 'long' ? 'var(--buy)' : 'var(--sell)';
     const d = new Date(e.savedAt);
     const dateStr = d.toLocaleDateString(undefined, { month:'short', day:'numeric' }) + ' ' + d.toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit' });
+    const hasFb = !!e.hasFeedback;
+    _historyRegistry[e.pair + '_' + e.dir] = e;
+
+    // Outer wrapper (row + feedback panel sit inside this)
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'border-bottom:1px solid var(--border);';
+
+    // Main clickable row
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.15s;';
+    row.className = 'history-row';
+    row.setAttribute('data-key', e.pair + '_' + e.dir);
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;transition:background 0.15s;';
     row.innerHTML =
-      '<div style="font-family:Space Mono,monospace;font-size:14px;font-weight:700;min-width:70px;">' + e.pair + '</div>' +
-      '<div style="font-family:Space Mono,monospace;font-size:11px;color:' + dirCol + ';min-width:52px;">' + dirLabel + '</div>' +
-      '<div style="flex:1;display:flex;align-items:center;gap:6px;">' +
-        '<div style="flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;">' +
-          '<div style="width:' + e.pct + '%;height:100%;background:' + col + ';border-radius:3px;"></div>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+          '<span style="font-family:Space Mono,monospace;font-size:13px;font-weight:700;">' + e.pair + '</span>' +
+          '<span style="font-family:Space Mono,monospace;font-size:10px;color:' + dirCol + ';">' + dirLabel + '</span>' +
+          (e.tf ? '<span style="font-family:Space Mono,monospace;font-size:9px;color:#a78bfa;">' + e.tf + '</span>' : '') +
+          (hasFb ? '<span style="font-size:9px;color:var(--moderate);font-family:Space Mono,monospace;">📊 RATED</span>' : '') +
         '</div>' +
-        '<span style="font-family:Space Mono,monospace;font-size:10px;color:' + col + ';min-width:32px;">' + e.pct + '%</span>' +
+        '<div style="display:flex;align-items:center;gap:6px;">' +
+          '<div style="flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;">' +
+            '<div style="width:' + e.pct + '%;height:100%;background:' + col + ';border-radius:3px;"></div>' +
+          '</div>' +
+          '<span style="font-family:Space Mono,monospace;font-size:10px;color:' + col + ';min-width:28px;">' + e.pct + '%</span>' +
+        '</div>' +
       '</div>' +
-      '<div style="font-size:10px;color:var(--muted);text-align:right;">' + dateStr + '</div>';
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">' +
+        '<div style="font-size:9px;color:var(--muted);">' + dateStr + '</div>' +
+        '<button class="fb-rate-btn" data-hkey="' + e.pair + '_' + e.dir + '" style="font-size:9px;padding:3px 8px;" >' +
+          (hasFb ? '📊 UPDATE' : '📊 RATE') +
+        '</button>' +
+      '</div>';
+
     row.addEventListener('mouseenter', () => row.style.background = 'var(--surface2)');
     row.addEventListener('mouseleave', () => row.style.background = '');
     row.addEventListener('click', () => restoreHistory(e));
-    container.appendChild(row);
-  });
+
+    wrap.appendChild(row);
+    container.appendChild(wrap);
+
+    // Wire up the RATE button after it's in the DOM — avoids inline onclick quoting and
+    // correctly stops the event from bubbling to the row's restoreHistory handler.
+    const rateBtn = row.querySelector('.fb-rate-btn');
+    if (rateBtn) {
+      rateBtn.addEventListener('click', function(ev) {
+        ev.stopPropagation();
+        openFeedbackPanelById(rateBtn.getAttribute('data-hkey'));
+      });
+    }
+  }); // end entries.forEach
 
   // Clear all button
   const clearBtn = document.createElement('div');
@@ -1030,15 +1364,19 @@ function renderHistoryList() {
 }
 
 function historyClearAll() {
-  if (!confirm('Clear all saved pair history?')) return;
-  localStorage.removeItem(HISTORY_KEY);
+  if (!window.confirm('Clear all saved pair history and ratings?')) return;
+  try { localStorage.removeItem(HISTORY_KEY); } catch(e) {}
+  try { localStorage.removeItem(FEEDBACK_KEY); } catch(e) {}
   renderHistoryList();
+  computeAndRenderBias();
 }
 
 function restoreHistory(e) {
   // Set UI selectors to match saved state
   document.getElementById('confirm-pair').value = e.pair;
   setConfirmDir(e.dir);
+  if (e.tf) setConfirmTF(e.tf);
+  if (e.tf) setConfirmTF(e.tf);
 
   // Run confirmation to rebuild the UI, then restore the saved marks
   runConfirmation(e.itemStates);
@@ -1061,6 +1399,7 @@ function switchTab(tab) {
   document.getElementById('nav-playbook').classList.toggle('active', tab === 'home');
   document.getElementById('nav-confirm').classList.toggle('active', tab === 'confirm');
   if (tab === 'confirm') renderHistoryList();
+  if (tab === 'home') computeAndRenderBias();
 }
 
 // ═══════════════════════════════════
@@ -1243,11 +1582,21 @@ function cfBuildGroup(items, strengthKey, groupLabel, savedItemStates) {
     card.style.animationDelay = (i * 0.04) + 's';
     card.setAttribute('data-key', stateKey);
     card.setAttribute('data-pair', item.pair);
+    // Reliability badge from feedback engine
+    const rel = fbGetReliability(CF.pair, CF.dir, item.pair);
+    let relBadge = '';
+    if (rel.total >= 3) {
+      // Show badge once we have at least 3 data points — less than that is too noisy
+      relBadge = `<span class="rel-badge ${rel.cssClass}" title="${rel.wins}W/${rel.losses}L">${rel.label} · ${rel.total} trades</span>`;
+    } else if (rel.total > 0) {
+      relBadge = `<span class="rel-badge rel-none" title="Need more data">${rel.total} trade${rel.total>1?'s':''} tracked</span>`;
+    }
+
     card.innerHTML = `
       <div class="check-icon" id="icon-${stateKey}">○</div>
       <div class="check-content">
         <div class="check-pair-row">
-          <span class="check-pair-name">${item.pair}</span>
+          <span class="check-pair-name">${item.pair}${relBadge}</span>
           <span class="check-need need-${strengthKey}">${strengthKey.toUpperCase()}</span>
         </div>
         <div class="check-direction ${dirClass}">${dirLabel}</div>
@@ -1587,8 +1936,224 @@ document.getElementById('install-btn').addEventListener('click', async () => {
 function dismissInstall() { document.getElementById('install-banner').style.display = 'none'; }
 if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('sw.js')); }
 
-// Init history list on page load
+// ═══════════════════════════════════════════════════════════
+// TIMEFRAME SELECTOR
+// ═══════════════════════════════════════════════════════════
+let confirmTF = 'M15';
+
+function setConfirmTF(tf) {
+  confirmTF = tf;
+  document.querySelectorAll('.tf-pill').forEach(b => {
+    b.classList.toggle('tf-active', b.getAttribute('data-tf') === tf);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// BIAS ENGINE
+// Reads all saved history entries, sweeps every confirmed/against
+// item's PAIRS correlations, casts weighted directional votes for
+// every pair in the grid, then renders a dot on each button.
+// Also runs conflict detection across the full vote tally.
+// ═══════════════════════════════════════════════════════════
+
+// Weight table: confirmed pairs SUPPORT the base trade direction,
+// against pairs OPPOSE it — both cast votes for other pairs.
+const BIAS_WEIGHTS = {
+  confirmed: { strong: 3, moderate: 2, weak: 1 },
+  against:   { strong: 4, moderate: 2.5, weak: 1.5 }
+};
+
+// All pairs shown in the grid (including their display name for US30Cash)
+const GRID_PAIRS = ['AUDCHF','EURAUD','EURJPY','EURUSD','GBPCAD','GBPJPY','GBPUSD','USDCAD','USDCHF','USDJPY','BTCUSD','GOLD','US30Cash'];
+
+function computeAndRenderBias() {
+  const h = historyLoad();
+  const entries = Object.values(h);
+
+  // votes[pair] = { long: score, short: score, sources: Set, tfs: Set }
+  const votes = {};
+  GRID_PAIRS.forEach(p => { votes[p] = { long: 0, short: 0, sources: new Set(), tfs: new Set() }; });
+
+  entries.forEach(entry => {
+    const { pair: basePair, dir, itemStates, tf } = entry;
+    const tfLabel = tf || '—';
+    const dirKey = dir === 'long' ? 'buy' : 'sell';
+    if (!PAIRS[basePair] || !PAIRS[basePair][dirKey]) return;
+
+    const allActions = PAIRS[basePair][dirKey].actions.filter(a => a.action !== 'neutral');
+
+    allActions.forEach(item => {
+      const stateKey = item.pair + '_' + item.strength;
+      const state = itemStates ? itemStates[stateKey] : 'unchecked';
+      if (!state || state === 'unchecked') return;
+      if (!votes[item.pair]) return;
+
+      const w = BIAS_WEIGHTS[state][item.strength] || 0;
+
+      if (state === 'confirmed') {
+        // Confirmed: this pair is moving in the direction the base trade needs
+        // item.action = 'buy' or 'sell' — that IS the direction this pair is moving
+        if (item.action === 'buy') {
+          votes[item.pair].long += w;
+        } else if (item.action === 'sell') {
+          votes[item.pair].short += w;
+        }
+      } else if (state === 'against') {
+        // Against: pair is moving opposite to what the base trade needs
+        if (item.action === 'buy') {
+          votes[item.pair].short += w; // it should be rising but isn't → short signal
+        } else if (item.action === 'sell') {
+          votes[item.pair].long += w;  // it should be falling but isn't → long signal
+        }
+      }
+
+      votes[item.pair].sources.add(basePair + ' ' + dir.toUpperCase());
+      votes[item.pair].tfs.add(tfLabel);
+    });
+  });
+
+  // Render dots on each grid button
+  GRID_PAIRS.forEach(pair => {
+    const v = votes[pair];
+    const displayName = pair === 'US30Cash' ? 'US30' : pair;
+    // Find the button by scanning for pair text (symbol span)
+    const btns = document.querySelectorAll('.pair-btn');
+    let btn = null;
+    btns.forEach(b => {
+      const sym = b.querySelector('.symbol');
+      if (sym && sym.textContent.trim() === displayName) btn = b;
+    });
+    if (!btn) return;
+
+    // Remove old bias dot if any
+    const old = btn.querySelector('.bias-dot');
+    if (old) old.remove();
+
+    const total = v.long + v.short;
+    if (total === 0) return; // no data — leave clean
+
+    const longPct  = Math.round((v.long  / total) * 100);
+    const shortPct = Math.round((v.short / total) * 100);
+    const dominant = longPct >= shortPct ? 'long' : 'short';
+    const confidence = Math.max(longPct, shortPct);
+    const isConflict = confidence < 60; // less than 60% dominant = conflicted
+
+    const tfsArr    = Array.from(v.tfs).slice(0, 2).join('/');
+    const srcCount  = v.sources.size;
+    const biasClass = isConflict ? 'conflict' : dominant;
+    const arrow     = isConflict ? '⚡' : (dominant === 'long' ? '▲' : '▼');
+    const pctLabel  = isConflict ? longPct + '/' + shortPct : confidence + '%';
+
+    const dot = document.createElement('div');
+    dot.className = 'bias-dot';
+    dot.innerHTML =
+      '<span class="bias-arrow ' + biasClass + '">' + arrow + '</span>' +
+      '<span class="bias-tf ' + biasClass + '">' + pctLabel + '</span>' +
+      (tfsArr ? '<span class="bias-meta">' + tfsArr + '</span>' : '') +
+      '<span class="bias-meta">×' + srcCount + '</span>';
+    btn.appendChild(dot);
+  });
+
+  // Render conflict banner and legend
+  renderConflictBanner(votes, entries.length);
+  renderBiasLegend(votes);
+}
+
+function renderConflictBanner(votes, entryCount) {
+  const banner   = document.getElementById('conflict-banner');
+  const listEl   = document.getElementById('conflict-list');
+  if (!banner || !listEl) return;
+
+  // Known inverse pairs — if both have a strong bias, they must be opposite
+  const INVERSE_PAIRS = [
+    ['EURUSD', 'USDCHF'],
+    ['GBPUSD', 'USDCHF'],
+    ['EURUSD', 'USDCAD'],
+    ['GOLD',   'USDCHF'],
+    ['GOLD',   'EURUSD'],
+  ];
+  // Known correlated pairs — they should move the same direction
+  const CORR_PAIRS = [
+    ['EURUSD', 'GBPUSD'],
+    ['EURJPY', 'GBPJPY'],
+    ['EURJPY', 'USDJPY'],
+    ['GBPJPY', 'USDJPY'],
+    ['BTCUSD', 'US30Cash'],
+    ['AUDCHF', 'GBPJPY'],
+  ];
+
+  const conflicts = [];
+
+  INVERSE_PAIRS.forEach(([a, b]) => {
+    const va = votes[a], vb = votes[b];
+    if (!va || !vb) return;
+    const totalA = va.long + va.short, totalB = vb.long + vb.short;
+    if (totalA === 0 || totalB === 0) return;
+    const domA = va.long >= va.short ? 'long' : 'short';
+    const domB = vb.long >= vb.short ? 'long' : 'short';
+    const confA = Math.round((Math.max(va.long, va.short) / totalA) * 100);
+    const confB = Math.round((Math.max(vb.long, vb.short) / totalB) * 100);
+    if (confA < 55 || confB < 55) return; // not confident enough to flag
+    // Inverse pairs should have OPPOSITE bias — conflict if same direction
+    if (domA === domB) {
+      const aDisp = a === 'US30Cash' ? 'US30' : a;
+      const bDisp = b === 'US30Cash' ? 'US30' : b;
+      conflicts.push('<div class="conflict-item"><strong>' + aDisp + ' ' + domA.toUpperCase() +
+        ' (' + confA + '%) + ' + bDisp + ' ' + domB.toUpperCase() + ' (' + confB + '%)</strong> — ' +
+        aDisp + ' and ' + bDisp + ' are inverse pairs. Both pointing ' + domA +
+        ' is contradictory. Check which USD leg is actually driving.</div>');
+    }
+  });
+
+  CORR_PAIRS.forEach(([a, b]) => {
+    const va = votes[a], vb = votes[b];
+    if (!va || !vb) return;
+    const totalA = va.long + va.short, totalB = vb.long + vb.short;
+    if (totalA === 0 || totalB === 0) return;
+    const domA = va.long >= va.short ? 'long' : 'short';
+    const domB = vb.long >= vb.short ? 'long' : 'short';
+    const confA = Math.round((Math.max(va.long, va.short) / totalA) * 100);
+    const confB = Math.round((Math.max(vb.long, vb.short) / totalB) * 100);
+    if (confA < 60 || confB < 60) return;
+    // Correlated pairs conflict if pointing OPPOSITE directions
+    if (domA !== domB) {
+      const aDisp = a === 'US30Cash' ? 'US30' : a;
+      const bDisp = b === 'US30Cash' ? 'US30' : b;
+      conflicts.push('<div class="conflict-item"><strong>' + aDisp + ' ' + domA.toUpperCase() +
+        ' (' + confA + '%) vs ' + bDisp + ' ' + domB.toUpperCase() + ' (' + confB + '%)</strong> — ' +
+        aDisp + ' and ' + bDisp + ' usually move together. This divergence suggests the signal is incomplete. Wait for them to align.</div>');
+    }
+  });
+
+  if (conflicts.length > 0) {
+    listEl.innerHTML = conflicts.join('');
+    banner.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+function renderBiasLegend(votes) {
+  const wrap = document.getElementById('bias-legend-wrap');
+  if (!wrap) return;
+  const tracked = GRID_PAIRS.filter(p => votes[p] && (votes[p].long + votes[p].short) > 0).length;
+  if (tracked === 0) { wrap.innerHTML = ''; return; }
+  const h = historyLoad();
+  const srcCount = Object.keys(h).length;
+  wrap.innerHTML =
+    '<div class="bias-legend">' +
+      '<div class="bias-legend-item"><div class="bl-dot" style="background:var(--buy)"></div>LONG BIAS</div>' +
+      '<div class="bias-legend-item"><div class="bl-dot" style="background:var(--sell)"></div>SHORT BIAS</div>' +
+      '<div class="bias-legend-item"><div class="bl-dot" style="background:var(--moderate)"></div>CONFLICTED</div>' +
+      '<div class="bias-legend-item" style="margin-left:auto;color:var(--muted);">from ' + srcCount + ' session' + (srcCount !== 1 ? 's' : '') + '</div>' +
+    '</div>';
+}
+
+// TF saving is handled directly in historyRecord above.
+
+// ─── Init on page load ───────────────────────────────────────
 renderHistoryList();
+computeAndRenderBias();
 </script>
 </body>
 </html>
