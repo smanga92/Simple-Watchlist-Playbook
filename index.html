@@ -160,7 +160,64 @@
   .check-icon.icon-no { background: rgba(255,77,109,0.15); color: var(--sell); }
   .check-icon.icon-ranging { background: rgba(245,158,11,0.15); color: var(--moderate); }
 
-  /* SETTINGS MODAL */
+  /* ── SCANNER INPUT GRID ───────────────────────────────── */
+  .scan-pair-row { display:flex; align-items:center; gap:8px; padding:9px 12px; background:var(--surface); border:1px solid var(--border); border-radius:12px; margin-bottom:6px; }
+  .scan-pair-name { font-size:13px; font-family:'Space Mono',monospace; font-weight:700; flex:1; }
+  .scan-dir-btn { flex:1; padding:7px 0; border-radius:8px; border:1px solid var(--border); background:transparent; font-family:'Space Mono',monospace; font-size:10px; font-weight:700; letter-spacing:0.5px; cursor:pointer; transition:all 0.15s; color:var(--muted); }
+  .scan-dir-btn.active-long  { background:rgba(0,200,150,0.15); border-color:rgba(0,200,150,0.5); color:var(--buy); }
+  .scan-dir-btn.active-short { background:rgba(255,77,109,0.15); border-color:rgba(255,77,109,0.5); color:var(--sell); }
+  .scan-dir-btn.active-range { background:rgba(245,158,11,0.1);  border-color:rgba(245,158,11,0.4); color:var(--moderate); }
+
+  /* ── SCANNER RESULTS ──────────────────────────────────── */
+  .scan-result-section { margin:0 16px 20px; }
+  .scan-result-label { font-size:10px; letter-spacing:3px; color:var(--muted); font-family:'Space Mono',monospace; text-transform:uppercase; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; }
+  .scan-result-label span { font-size:9px; color:var(--muted); letter-spacing:1px; }
+  .scan-rank-row { display:flex; align-items:center; gap:8px; padding:11px 14px; background:var(--surface); border:1px solid var(--border); border-radius:12px; margin-bottom:6px; }
+  .scan-rank-num { font-size:11px; font-family:'Space Mono',monospace; color:var(--muted); width:18px; text-align:center; flex-shrink:0; }
+  .scan-rank-pair { font-size:14px; font-family:'Space Mono',monospace; font-weight:700; flex:1; }
+  .scan-rank-dir { font-size:10px; font-family:'Space Mono',monospace; font-weight:700; padding:3px 8px; border-radius:6px; flex-shrink:0; }
+  .scan-rank-dir.long  { background:rgba(0,200,150,0.12); color:var(--buy); }
+  .scan-rank-dir.short { background:rgba(255,77,109,0.12); color:var(--sell); }
+  .scan-rank-bar-wrap { width:52px; height:5px; background:var(--surface2); border-radius:3px; flex-shrink:0; }
+  .scan-rank-bar-fill { height:5px; border-radius:3px; }
+  .scan-rank-score { font-size:11px; font-family:'Space Mono',monospace; flex-shrink:0; min-width:30px; text-align:right; }
+  .scan-rank-votes { font-size:9px; color:var(--muted); font-family:'Space Mono',monospace; flex-shrink:0; }
+  .scan-convergence-row { border-color:rgba(0,200,150,0.3)!important; }
+  .scan-no-results { text-align:center; padding:24px; color:var(--muted); font-size:12px; font-family:'Space Mono',monospace; line-height:1.8; }
+  .scanner-header { padding: 32px 20px 16px; text-align: center; }
+  .scanner-header h1 { font-size: 22px; font-weight: 700; margin: 8px 0 4px; letter-spacing: -0.5px; }
+  .scanner-header p  { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.5; }
+
+  .tf-section { margin: 0 16px 20px; }
+  .tf-section-label { font-size: 10px; letter-spacing: 3px; color: var(--muted); font-family: 'Space Mono', monospace; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+  .tf-section-label span { font-size: 9px; color: var(--muted); letter-spacing: 1px; }
+
+  .scanner-rank-row { display: flex; align-items: center; gap: 10px; padding: 11px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 6px; cursor: default; transition: background 0.15s; }
+  .scanner-rank-row:hover { background: var(--surface2); }
+  .rank-num  { font-size: 11px; font-family: 'Space Mono', monospace; color: var(--muted); width: 18px; text-align: center; flex-shrink: 0; }
+  .rank-pair { font-size: 14px; font-family: 'Space Mono', monospace; font-weight: 700; flex: 1; }
+  .rank-dir  { font-size: 10px; font-family: 'Space Mono', monospace; font-weight: 700; padding: 3px 8px; border-radius: 6px; flex-shrink: 0; }
+  .rank-dir.long  { background: rgba(0,200,150,0.12); color: var(--buy); }
+  .rank-dir.short { background: rgba(255,77,109,0.12); color: var(--sell); }
+  .rank-score { font-size: 11px; font-family: 'Space Mono', monospace; color: var(--muted); flex-shrink: 0; min-width: 36px; text-align: right; }
+  .rank-bar-wrap { width: 56px; height: 5px; background: var(--surface2); border-radius: 3px; flex-shrink: 0; }
+  .rank-bar-fill { height: 5px; border-radius: 3px; transition: width 0.3s; }
+  .rank-obs { font-size: 9px; color: var(--muted); font-family: 'Space Mono', monospace; flex-shrink: 0; }
+
+  .scanner-empty { text-align: center; padding: 40px 24px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+  .scanner-empty .empty-icon { font-size: 36px; margin-bottom: 12px; }
+
+  .submit-scanner-btn { display: block; width: calc(100% - 32px); margin: 12px 16px 4px; padding: 13px; border-radius: 12px; border: 1.5px solid var(--accent); background: transparent; color: var(--accent); font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; letter-spacing: 1.5px; cursor: pointer; transition: all 0.15s; }
+  .submit-scanner-btn:hover { background: var(--accent); color: #000; }
+  .submit-scanner-btn:active { transform: scale(0.98); }
+
+  .scanner-clear-btn { display: block; text-align: center; padding: 10px; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 1px; cursor: pointer; margin-bottom: 32px; }
+  .scanner-clear-btn:hover { color: var(--sell); }
+
+  .strength-bar-wrap { display: flex; gap: 3px; flex-shrink: 0; }
+  .strength-pip { width: 6px; height: 6px; border-radius: 2px; }
+
+  .scan-count-badge { font-size: 9px; font-family: 'Space Mono', monospace; padding: 2px 6px; border-radius: 4px; background: var(--surface2); color: var(--muted); margin-left: 6px; vertical-align: middle; }
   .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:500; display:flex; align-items:flex-end; justify-content:center; animation:fadeIn 0.15s ease; }
   .modal-overlay.hidden { display:none; }
   @keyframes fadeIn { from{opacity:0} to{opacity:1} }
@@ -436,7 +493,39 @@
 
   <!-- SAVED HISTORY -->
   <div style="margin:0 16px 8px;font-size:10px;letter-spacing:3px;color:var(--muted);font-family:Space Mono,monospace;text-transform:uppercase;">Pair History</div>
-  <div id="confirm-history-section" style="margin:0 0 32px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin:0 16px 32px;"></div>
+  <div id="confirm-history-section" style="margin:0 16px 32px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:visible;"></div>
+</div>
+
+<!-- SCANNER PAGE -->
+<div id="scanner" class="page hidden">
+  <div class="scanner-header">
+    <span class="logo">Market Scanner</span>
+    <h1>Morning Overview</h1>
+    <p>Tag what each pair is doing on your charts.<br>The scanner ranks the best trade setups<br>based on cross-pair confirmation.</p>
+  </div>
+
+  <!-- Timeframe selector -->
+  <div style="margin:0 16px 14px;display:flex;align-items:center;gap:8px;">
+    <span style="font-size:10px;letter-spacing:2px;color:var(--muted);font-family:'Space Mono',monospace;">TF</span>
+    <div class="tf-pills" id="scanner-tf-pills">
+      <button class="tf-pill" data-tf="M15" onclick="setScannerTF('M15')">M15</button>
+      <button class="tf-pill" data-tf="H1"  onclick="setScannerTF('H1')">H1</button>
+      <button class="tf-pill tf-active" data-tf="H4"  onclick="setScannerTF('H4')">H4</button>
+      <button class="tf-pill" data-tf="D1"  onclick="setScannerTF('D1')">D1</button>
+      <button class="tf-pill" data-tf="W1"  onclick="setScannerTF('W1')">W1</button>
+    </div>
+  </div>
+
+  <!-- Pair tagging grid — rendered by renderScannerInput() -->
+  <div id="scanner-input-grid" style="margin:0 16px 16px;"></div>
+
+  <!-- Run button -->
+  <button class="confirm-btn" style="margin:0 16px 8px;width:calc(100% - 32px);" onclick="runScanner()">📡 SCAN THE MARKET →</button>
+
+  <!-- Results -->
+  <div id="scanner-results"></div>
+
+  <div class="scanner-clear-btn" onclick="scannerClearAll()">CLEAR ALL TAGS</div>
 </div>
 
 <!-- BOTTOM NAV -->
@@ -448,6 +537,10 @@
   <div class="nav-tab" id="nav-confirm" onclick="switchTab('confirm')">
     <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
     <span>CONFIRM</span>
+  </div>
+  <div class="nav-tab" id="nav-scanner" onclick="switchTab('scanner')">
+    <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+    <span>SCANNER</span>
   </div>
 </div>
 
@@ -2144,14 +2237,19 @@ function restoreHistory(e) {
 // TAB SWITCHING
 // ═══════════════════════════════════
 function switchTab(tab) {
-  ['home','confirm'].forEach(p => document.getElementById(p).classList.add('hidden'));
+  ['home','confirm','scanner'].forEach(p => {
+    const el = document.getElementById(p);
+    if (el) el.classList.add('hidden');
+  });
   document.getElementById('detail').classList.add('hidden');
   document.getElementById('detail').style.display = 'none';
   document.getElementById(tab).classList.remove('hidden');
   document.getElementById('nav-playbook').classList.toggle('active', tab === 'home');
   document.getElementById('nav-confirm').classList.toggle('active', tab === 'confirm');
+  document.getElementById('nav-scanner').classList.toggle('active', tab === 'scanner');
   if (tab === 'confirm') renderHistoryList();
   if (tab === 'home') computeAndRenderBias();
+  if (tab === 'scanner') renderScannerInput();
 }
 
 // ═══════════════════════════════════
@@ -2951,6 +3049,300 @@ function renderBiasLegend(votes) {
 }
 
 // TF saving is handled directly in historyRecord above.
+
+// ═══════════════════════════════════════════════════════════
+// MORNING SCANNER ENGINE
+//
+// The scanner is self-contained. The user tags each pair
+// in their watchlist as LONG, SHORT, or RANGE directly in
+// the scanner tab — no need to go through Confirm.
+//
+// Storage: SCANNER_TAGS_KEY stores the current tags per TF.
+// Format: { 'H4': { 'EURUSD': 'long', 'GBPUSD': 'short', ... }, ... }
+//
+// Ranking logic:
+// For each tagged pair+direction, the engine looks at the
+// correlation data (getPairData) and checks how many OTHER
+// tagged pairs are confirming that pair's direction —
+// weighted by strength tier (strong=3, moderate=2, weak=1).
+// Pairs are then ranked strong → weak by this cross-pair
+// confirmation score. Ranging pairs are excluded from ranking
+// but their tags are recorded so correlated pairs can detect
+// when a key confirmation is ranging instead of confirming.
+// ═══════════════════════════════════════════════════════════
+const SCANNER_TAGS_KEY = 'fx_scanner_tags_v1';
+
+let scannerTF = 'H4';
+
+const SCANNER_RESULTS_KEY = 'fx_scanner_results_v1';
+
+function scannerResultsSave(results, tf) {
+  try { localStorage.setItem(SCANNER_RESULTS_KEY, JSON.stringify({ results, tf, savedAt: new Date().toISOString() })); } catch(e) {}
+}
+function scannerResultsLoad() {
+  try { return JSON.parse(localStorage.getItem(SCANNER_RESULTS_KEY)) || null; } catch(e) { return null; }
+}
+
+function scannerTagsLoad() {
+  try { return JSON.parse(localStorage.getItem(SCANNER_TAGS_KEY)) || {}; } catch(e) { return {}; }
+}
+function scannerTagsSave(data) {
+  try { localStorage.setItem(SCANNER_TAGS_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+function setScannerTF(tf) {
+  scannerTF = tf;
+  document.querySelectorAll('#scanner-tf-pills .tf-pill').forEach(b => {
+    b.classList.toggle('tf-active', b.getAttribute('data-tf') === tf);
+  });
+  renderScannerInput();
+}
+
+// Tag a pair in the current TF — cycles: untagged → long → short → range → untagged
+function scannerTagPair(pair, dir) {
+  const tags = scannerTagsLoad();
+  if (!tags[scannerTF]) tags[scannerTF] = {};
+  const current = tags[scannerTF][pair];
+  if (current === dir) {
+    // Tapping same button again clears the tag
+    delete tags[scannerTF][pair];
+  } else {
+    tags[scannerTF][pair] = dir;
+  }
+  scannerTagsSave(tags);
+  renderScannerInput();
+}
+
+// ── Input grid ───────────────────────────────────────────────────────────────
+function renderScannerInput() {
+  const grid = document.getElementById('scanner-input-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  const wl = watchlistLoad();
+  const tags = scannerTagsLoad();
+  const tfTags = tags[scannerTF] || {};
+
+  // Count how many are tagged
+  const taggedCount = Object.keys(tfTags).length;
+  const taggedLabel = document.createElement('div');
+  taggedLabel.style.cssText = 'font-size:10px;letter-spacing:2px;color:var(--muted);font-family:Space Mono,monospace;text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between;';
+  taggedLabel.innerHTML = `YOUR PAIRS <span style="color:var(--accent);">${taggedCount} TAGGED</span>`;
+  grid.appendChild(taggedLabel);
+
+  wl.forEach(pair => {
+    const tag = tfTags[pair] || null;
+    const row = document.createElement('div');
+    row.className = 'scan-pair-row';
+    if (tag === 'long')  row.style.borderColor = 'rgba(0,200,150,0.3)';
+    if (tag === 'short') row.style.borderColor = 'rgba(255,77,109,0.3)';
+    if (tag === 'range') row.style.borderColor = 'rgba(245,158,11,0.3)';
+
+    const meta = ALL_PAIRS_META[pair] || { label: pair };
+    row.innerHTML = `
+      <div class="scan-pair-name">${meta.label}</div>
+      <button class="scan-dir-btn ${tag === 'long'  ? 'active-long'  : ''}" onclick="scannerTagPair('${pair}','long')">▲ LONG</button>
+      <button class="scan-dir-btn ${tag === 'short' ? 'active-short' : ''}" onclick="scannerTagPair('${pair}','short')">▼ SHORT</button>
+      <button class="scan-dir-btn ${tag === 'range' ? 'active-range' : ''}" onclick="scannerTagPair('${pair}','range')">~ RANGE</button>`;
+    grid.appendChild(row);
+  });
+
+  // Restore previous scan results if they exist
+  const saved = scannerResultsLoad();
+  const resultsEl = document.getElementById('scanner-results');
+  if (saved && saved.results && resultsEl) {
+    const d = new Date(saved.savedAt);
+    const timeStr = d.toLocaleDateString(undefined, { month:'short', day:'numeric' }) + ' ' + d.toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit' });
+    renderScannerResults(saved.results, timeStr, saved.tf);
+  }
+}
+
+// ── Ranking engine ───────────────────────────────────────────────────────────
+function runScanner() {
+  const tags = scannerTagsLoad();
+  const tfTags = tags[scannerTF] || {};
+
+  const tagged = Object.entries(tfTags).filter(([, d]) => d !== 'range');
+  if (tagged.length < 2) {
+    alert('Tag at least 2 pairs as LONG or SHORT first.');
+    return;
+  }
+
+  // For each tagged pair+direction, compute a cross-confirmation score
+  // by checking how many other tagged pairs confirm its direction
+  // according to the correlation data.
+  const results = [];
+
+  tagged.forEach(([pair, dir]) => {
+    const pData = getPairData(pair);
+    if (!pData) return;
+
+    const dirKey = dir === 'long' ? 'buy' : 'sell';
+    const actions = pData[dirKey] && pData[dirKey].actions ? pData[dirKey].actions : [];
+
+    let confirmedScore = 0;
+    let maxScore = 0;
+    let confirmedPairs = [];
+    let againstPairs   = [];
+    let rangingPairs   = [];
+
+    actions.forEach(action => {
+      if (action.action === 'neutral') return;
+      const w = action.strength === 'strong' ? 3
+              : action.strength === 'moderate' ? 2 : 1;
+      maxScore += w;
+
+      const otherTag = tfTags[action.pair];
+      if (!otherTag) return; // not tagged — skip, don't penalise
+
+      // Does the tagged direction of this other pair match what
+      // the correlation says it should be doing?
+      const shouldBe = action.action; // 'buy' or 'sell'
+      const actualDir = otherTag === 'long' ? 'buy' : otherTag === 'short' ? 'sell' : 'range';
+
+      if (otherTag === 'range') {
+        rangingPairs.push(action.pair);
+        // ranging = 0 contribution
+      } else if (actualDir === shouldBe) {
+        confirmedScore += w;
+        confirmedPairs.push({ pair: action.pair, strength: action.strength, w });
+      } else {
+        // Moving opposite to what the correlation expects
+        confirmedScore -= w;
+        againstPairs.push({ pair: action.pair, strength: action.strength, w });
+      }
+    });
+
+    // Normalise: only against pairs that were actually tagged
+    const taggedActions = actions.filter(a => tfTags[a.pair] && a.action !== 'neutral');
+    const taggedMax = taggedActions.reduce((s, a) =>
+      s + (a.strength === 'strong' ? 3 : a.strength === 'moderate' ? 2 : 1), 0);
+
+    const normScore = taggedMax > 0 ? confirmedScore / taggedMax : 0;
+
+    results.push({
+      pair, dir,
+      confirmedScore,
+      taggedMax,
+      normScore,
+      confirmedPairs,
+      againstPairs,
+      rangingPairs,
+      confirmedCount: confirmedPairs.length,
+      totalTagged: taggedActions.length,
+    });
+  });
+
+  // Sort: highest normScore first
+  results.sort((a, b) => b.normScore - a.normScore);
+
+  scannerResultsSave(results, scannerTF);
+  renderScannerResults(results);
+}
+
+// ── Results rendering ────────────────────────────────────────────────────────
+function renderScannerResults(results, restoredAt, tfLabel) {
+  const container = document.getElementById('scanner-results');
+  container.innerHTML = '';
+
+  // Timestamp banner when restoring saved results
+  if (restoredAt) {
+    const stamp = document.createElement('div');
+    stamp.style.cssText = 'margin:0 16px 12px;padding:8px 12px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);font-size:10px;font-family:Space Mono,monospace;color:var(--muted);display:flex;justify-content:space-between;align-items:center;';
+    stamp.innerHTML = `<span>Last scan: ${restoredAt}</span><span style="color:var(--accent);">${tfLabel || scannerTF}</span>`;
+    container.appendChild(stamp);
+  }
+
+  if (results.length === 0) {
+    container.innerHTML = '<div class="scan-no-results">No results. Make sure the pairs you tagged have correlation data.</div>';
+    return;
+  }
+
+  // Split into high / moderate / weak by normScore
+  const high = results.filter(r => r.normScore >= 0.5);
+  const mod  = results.filter(r => r.normScore >= 0  && r.normScore < 0.5);
+  const weak = results.filter(r => r.normScore < 0);
+
+  const sections = [
+    { label: '🟢 HIGH PROBABILITY', sub: 'majority of tagged pairs confirm', rows: high },
+    { label: '🟡 MODERATE',         sub: 'partial cross-pair confirmation',   rows: mod  },
+    { label: '🔴 NOT CONFIRMED',     sub: 'correlated pairs contradict',       rows: weak },
+  ];
+
+  sections.forEach(({ label, sub, rows }) => {
+    if (rows.length === 0) return;
+
+    const section = document.createElement('div');
+    section.className = 'scan-result-section';
+
+    const lbl = document.createElement('div');
+    lbl.className = 'scan-result-label';
+    lbl.innerHTML = `${label} <span>${sub}</span>`;
+    section.appendChild(lbl);
+
+    rows.forEach((r, idx) => {
+      const barPct  = Math.max(0, Math.round(((r.normScore + 1) / 2) * 100));
+      const barColor = r.normScore >= 0.5 ? 'var(--buy)'
+                     : r.normScore >= 0   ? 'var(--moderate)'
+                     : 'var(--sell)';
+      const pct = r.totalTagged > 0
+        ? Math.round((r.confirmedPairs.length / r.totalTagged) * 100) : 0;
+
+      const row = document.createElement('div');
+      row.className = 'scan-rank-row';
+      if (r.normScore >= 0.5) row.style.borderColor = 'rgba(0,200,150,0.3)';
+      if (r.normScore < 0)    row.style.borderColor = 'rgba(255,77,109,0.2)';
+
+      // Build confirming pairs summary
+      const confStr = r.confirmedPairs.length > 0
+        ? r.confirmedPairs.slice(0,3).map(p => p.pair).join(', ') + (r.confirmedPairs.length > 3 ? '…' : '')
+        : '—';
+
+      row.innerHTML = `
+        <div class="scan-rank-num">${idx + 1}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <span class="scan-rank-pair">${r.pair}</span>
+            <span class="scan-rank-dir ${r.dir}">${r.dir === 'long' ? '▲ LONG' : '▼ SHORT'}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="scan-rank-bar-wrap" style="width:80px;">
+              <div class="scan-rank-bar-fill" style="width:${barPct}%;background:${barColor};"></div>
+            </div>
+            <span class="scan-rank-score" style="color:${barColor};">${pct}%</span>
+            <span class="scan-rank-votes">${r.confirmedPairs.length}✓ ${r.againstPairs.length > 0 ? r.againstPairs.length + '✗ ' : ''}${r.rangingPairs.length > 0 ? r.rangingPairs.length + '~ ' : ''}of ${r.totalTagged} tagged</span>
+          </div>
+          ${r.confirmedPairs.length > 0 ? `<div style="font-size:9px;color:var(--muted);font-family:Space Mono,monospace;margin-top:3px;letter-spacing:0.3px;">Confirmed by: ${confStr}</div>` : ''}
+          ${r.againstPairs.length > 0 ? `<div style="font-size:9px;color:var(--sell);font-family:Space Mono,monospace;margin-top:2px;">Against: ${r.againstPairs.slice(0,3).map(p=>p.pair).join(', ')}</div>` : ''}
+        </div>`;
+
+      section.appendChild(row);
+    });
+
+    container.appendChild(section);
+  });
+
+  // MTF convergence note if applicable
+  const topPair = results[0];
+  if (topPair && topPair.normScore >= 0.5) {
+    const banner = document.createElement('div');
+    banner.style.cssText = 'margin:0 16px 20px;padding:12px 14px;border-radius:12px;background:rgba(0,200,150,0.07);border:1px solid rgba(0,200,150,0.25);font-size:12px;font-family:Space Mono,monospace;color:var(--buy);line-height:1.7;';
+    banner.innerHTML = `✅ <strong>${topPair.pair} ${topPair.dir.toUpperCase()}</strong> has the strongest cross-pair confirmation on ${scannerTF}.<br><span style="color:var(--muted);font-size:10px;">${topPair.confirmedPairs.length} of ${topPair.totalTagged} tagged pairs confirm this direction. Check the Confirm tab for a deep-dive before entering.</span>`;
+    container.insertBefore(banner, container.firstChild);
+  }
+
+  // Scroll to results
+  container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function scannerClearAll() {
+  if (!window.confirm('Clear all scanner tags and results?')) return;
+  scannerTagsSave({});
+  try { localStorage.removeItem(SCANNER_RESULTS_KEY); } catch(e) {}
+  renderScannerInput();
+  const res = document.getElementById('scanner-results');
+  if (res) res.innerHTML = '';
+}
 
 // ─── Init on page load ───────────────────────────────────────
 renderHomeGrid();
